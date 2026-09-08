@@ -20,6 +20,7 @@ export async function GET() {
         name: c.name,
         phone: c.phone,
         active: c.active,
+        durationHours: c.durationHours ?? 1,
         hasOwner: !!c.ownerClerkId,
       })),
     );
@@ -37,6 +38,10 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const name = String(body.name ?? "").trim();
   const phone = String(body.phone ?? "").trim() || undefined;
+  const durationHours =
+    body.durationHours != null && Number(body.durationHours) >= 0.5
+      ? Number(body.durationHours)
+      : 1;
   if (!name) {
     return NextResponse.json({ error: "اسم الشركة مطلوب." }, { status: 400 });
   }
@@ -44,7 +49,7 @@ export async function POST(req: NextRequest) {
 
   // Admin creating an ownerless company (managed on their behalf).
   if (viewer.isAdmin && body.ownerless) {
-    const created = await Company.create({ name, phone, active: true });
+    const created = await Company.create({ name, phone, durationHours, active: true });
     return NextResponse.json({ id: String(created._id) });
   }
 

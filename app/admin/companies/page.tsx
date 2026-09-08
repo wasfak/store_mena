@@ -15,6 +15,7 @@ export default function CompaniesPage() {
   const [list, setList] = useState<CompanyDTO[] | null>(null);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [dur, setDur] = useState("1");
   const [adding, setAdding] = useState(false);
 
   const load = useCallback(async () => {
@@ -36,10 +37,16 @@ export default function CompaniesPage() {
     }
     setAdding(true);
     try {
-      await sendJSON("/api/companies", "POST", { name, phone, ownerless: true });
+      await sendJSON("/api/companies", "POST", {
+        name,
+        phone,
+        durationHours: Number(dur) || 1,
+        ownerless: true,
+      });
       toast.success("تمت إضافة الشركة.");
       setName("");
       setPhone("");
+      setDur("1");
       await load();
     } catch (e) {
       toast.error((e as Error).message);
@@ -57,6 +64,20 @@ export default function CompaniesPage() {
     }
   }
 
+  async function updateDuration(c: CompanyDTO, value: number) {
+    if (!(value >= 0.5)) {
+      toast.error("المدة يجب ألا تقل عن نصف ساعة.");
+      return;
+    }
+    try {
+      await sendJSON(`/api/companies/${c.id}`, "PATCH", { durationHours: value });
+      toast.success("تم تحديث المدة.");
+      await load();
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">الشركات</h1>
@@ -65,8 +86,8 @@ export default function CompaniesPage() {
         <CardHeader>
           <CardTitle>إضافة شركة</CardTitle>
           <CardDescription>
-            شركات يديرها المخزن (بدون حساب خاص). الشركات التي تسجّل بنفسها تظهر
-            هنا تلقائياً.
+            شركات يديرها المخزن (بدون حساب خاص). «المدة» هي عدد الساعات التي يحجزها
+            المخزن للشركة تلقائياً — الشركة الكبيرة تأخذ مواعيد متتالية تغطي هذه المدة.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap items-end gap-3">
@@ -77,6 +98,17 @@ export default function CompaniesPage() {
           <div className="space-y-1">
             <label className="text-sm font-medium">رقم التواصل</label>
             <Input value={phone} onChange={(e) => setPhone(e.target.value)} className="w-44" inputMode="tel" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm font-medium">المدة (ساعات)</label>
+            <Input
+              type="number"
+              min={0.5}
+              step={0.5}
+              value={dur}
+              onChange={(e) => setDur(e.target.value)}
+              className="w-28"
+            />
           </div>
           <Button onClick={add} disabled={adding}>
             <Plus className="mr-1 h-4 w-4" /> إضافة
@@ -91,12 +123,13 @@ export default function CompaniesPage() {
       ) : list.length === 0 ? (
         <p className="text-muted-foreground">لا توجد شركات بعد.</p>
       ) : (
-        <div className="rounded-lg border border-border">
+        <div className="overflow-x-auto rounded-lg border border-border">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>الشركة</TableHead>
                 <TableHead>رقم التواصل</TableHead>
+                <TableHead>المدة (ساعات)</TableHead>
                 <TableHead>النوع</TableHead>
                 <TableHead>الحالة</TableHead>
                 <TableHead className="text-left">إجراء</TableHead>
@@ -107,6 +140,19 @@ export default function CompaniesPage() {
                 <TableRow key={c.id}>
                   <TableCell className="font-medium">{c.name}</TableCell>
                   <TableCell>{c.phone || "—"}</TableCell>
+                  <TableCell>
+                    <Input
+                      type="number"
+                      min={0.5}
+                      step={0.5}
+                      defaultValue={c.durationHours ?? 1}
+                      className="w-20"
+                      onBlur={(e) => {
+                        const v = Number(e.target.value);
+                        if (v !== (c.durationHours ?? 1)) updateDuration(c, v);
+                      }}
+                    />
+                  </TableCell>
                   <TableCell>
                     <Badge variant="outline">{c.hasOwner ? "لها حساب" : "يديرها المخزن"}</Badge>
                   </TableCell>

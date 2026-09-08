@@ -21,6 +21,8 @@ export async function PATCH(
     update.name = body.name.trim();
   if (typeof body.phone === "string") update.phone = body.phone.trim();
   if (typeof body.active === "boolean") update.active = body.active;
+  if (body.durationHours != null && Number(body.durationHours) >= 0.5)
+    update.durationHours = Number(body.durationHours);
 
   await connectDB();
   const doc = await Company.findByIdAndUpdate(
@@ -34,5 +36,6 @@ export async function PATCH(
     name: doc.name,
     phone: doc.phone,
     active: doc.active,
+    durationHours: doc.durationHours ?? 1,
   });
 }

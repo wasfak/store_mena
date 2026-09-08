@@ -3,14 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import * as React from "react";
-import { Home, CalendarPlus, ClipboardList, CalendarDays, Settings, Building2, Ban } from "lucide-react";
+import { Home, CalendarPlus, ClipboardList, CalendarDays, Settings, Building2, Ban, Inbox } from "lucide-react";
 
 import type { LucideIcon } from "lucide-react";
 import { Show, SignInButton, SignUpButton, UserButton } from '@clerk/nextjs'
 import { BrandLogo } from "@/components/ui/brand-logo";
 import { ThemeToggle } from "@/components/theme";
 
-type IconName = "home" | "book" | "mybookings" | "schedule" | "settings" | "companies" | "conflicts";
+type IconName = "home" | "book" | "mybookings" | "schedule" | "settings" | "companies" | "conflicts" | "requests";
 
 type Item = {
   value: string;
@@ -75,6 +75,7 @@ export function NotchNav({
   settings: Settings,
   companies: Building2,
   conflicts: Ban,
+  requests: Inbox,
 };
 
   const updateNotch = React.useCallback(() => {
@@ -130,13 +131,16 @@ export function NotchNav({
   }, []);
 
   return (
-    <header className="relative flex w-full items-center gap-4 p-4 h-16">
+    <header className="relative flex w-full items-center gap-2 p-2 h-16 sm:gap-4 sm:p-4">
       <Link href="/" className="shrink-0" aria-label="Home">
         <BrandLogo />
       </Link>
       <nav
         aria-label={ariaLabel}
-        className={["flex min-w-0 flex-1 justify-center", className]
+        className={[
+          "flex min-w-0 flex-1 justify-start overflow-x-auto md:justify-center [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+          className,
+        ]
           .filter(Boolean)
           .join(" ")}
       >
@@ -165,11 +169,13 @@ export function NotchNav({
                 <>
                   {Icon && (
                     <Icon
-                      className="mr-2 h-4 w-4 shrink-0"
+                      className="h-4 w-4 shrink-0 md:mr-2"
                       aria-hidden="true"
                     />
                   )}
-                  <span className="whitespace-nowrap">{item.label}</span>
+                  <span className="hidden whitespace-nowrap md:inline">
+                    {item.label}
+                  </span>
                 </>
               );
 
@@ -183,6 +189,8 @@ export function NotchNav({
                       href={item.href}
                       prefetch={false}
                       role="menuitem"
+                      aria-label={item.label}
+                      title={item.label}
                       aria-current={isActive ? "page" : undefined}
                       tabIndex={isActive ? 0 : -1}
                       onClick={() => commitChange(item.value)}
@@ -202,6 +210,8 @@ export function NotchNav({
                         itemRefs.current[idx] = el;
                       }}
                       role="menuitem"
+                      aria-label={item.label}
+                      title={item.label}
                       aria-current={isActive ? "page" : undefined}
                       aria-pressed={isActive || undefined}
                       tabIndex={isActive ? 0 : -1}

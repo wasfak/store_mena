@@ -1,51 +1,79 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Show, SignInButton } from "@clerk/nextjs";
-import { Loader2, X } from "lucide-react";
+import { Loader2, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { CompanyProfileForm } from "@/components/company-profile-form";
+import { Input } from "@/components/ui/input";
 import { StatusBadge } from "@/components/status-badge";
 import { getJSON, sendJSON } from "@/lib/api";
-import { dateLabelAr, minutesToLabel } from "@/lib/slots";
-import type { MyBookingDTO, Viewer } from "@/lib/types";
+import type { BookingStatus } from "@/lib/types";
+
+interface MyBooking {
+  id: string;
+  date: string;
+  dateLabel: string;
+  slotLabel: string;
+  status: BookingStatus;
+  rescheduledByAdmin: boolean;
+  companyName: string;
+}
+
+const PHONE_KEY = "mena.myphone";
 
 export default function MyBookingsPage() {
-  const [viewer, setViewer] = useState<Viewer | null>(null);
-  const [list, setList] = useState<MyBookingDTO[] | null>(null);
+  const [phone, setPhone] = useState("");
+  const [list, setList] = useState<MyBooking[] | null>(null);
+  const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
 
-  const loadViewer = useCallback(async () => {
+  const phoneValid = /^\d{11}$/.test(phone);
+
+  // Prefill the phone from this browser, and auto-load if it's valid.
+  useEffect(() => {
+    let saved = "";
     try {
-      setViewer(await getJSON<Viewer>("/api/me"));
+      saved = localStorage.getItem(PHONE_KEY) ?? "";
     } catch {
-      setViewer({ clerkId: null, isAdmin: false, company: null });
+      saved = "";
     }
+    if (/^\d{11}$/.test(saved)) {
+      setPhone(saved);
+      void lookup(saved);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const loadList = useCallback(async () => {
+  async function lookup(p: string) {
+    if (!/^\d{11}$/.test(p)) {
+      toast.error("أدخل رقم هاتف صحيح مكوّن من 11 رقماً.");
+      return;
+    }
+    setLoading(true);
     try {
-      setList(await getJSON<MyBookingDTO[]>("/api/bookings?mine=1"));
+      const data = await getJSON<MyBooking[]>(
+        `/api/public/my-bookings?phone=${p}`,
+      );
+      setList(data);
+      try {
+        localStorage.setItem(PHONE_KEY, p);
+      } catch {
+        /* ignore storage errors */
+      }
     } catch (e) {
       toast.error((e as Error).message);
+    } finally {
+      setLoading(false);
     }
-  }, []);
-
-  useEffect(() => {
-    loadViewer();
-  }, [loadViewer]);
-  useEffect(() => {
-    if (viewer?.company) loadList();
-  }, [viewer, loadList]);
+  }
 
   async function cancel(id: string) {
     setBusy(id);
     try {
-      await sendJSON(`/api/bookings/${id}`, "PATCH", { action: "cancel" });
+      await sendJSON("/api/public/cancel", "POST", { id, phone });
       toast.success("تم إلغاء الحجز.");
-      await loadList();
+      await lookup(phone);
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -53,51 +81,42 @@ export default function MyBookingsPage() {
     }
   }
 
-  if (viewer === null)
-    return (
-      <div className="flex items-center gap-2 text-muted-foreground">
-        <Loader2 className="h-4 w-4 animate-spin" /> جارٍ التحميل…
-      </div>
-    );
-
-  if (!viewer.clerkId)
-    return (
-      <div className="space-y-4">
-        <h1 className="text-2xl font-bold">حجوزاتي</h1>
-        <p className="text-muted-foreground">سجّل الدخول لعرض حجوزاتك.</p>
-        <Show when="signed-out">
-          <SignInButton>
-            <Button>تسجيل الدخول</Button>
-          </SignInButton>
-        </Show>
-      </div>
-    );
-
-  if (!viewer.company)
-    return (
-      <div className="space-y-4">
-        <h1 className="text-2xl font-bold">حجوزاتي</h1>
-        <CompanyProfileForm onSaved={() => loadViewer()} />
-      </div>
-    );
-
   const now = new Date();
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">حجوزاتي</h1>
-        <span className="text-sm text-muted-foreground">
-          الشركة: <span className="font-medium text-foreground">{viewer.company.name}</span>
-        </span>
+    <div className="mx-auto max-w-lg space-y-6">
+      <h1 className="text-2xl font-bold">حجوزاتي</h1>
+      <p className="text-sm text-muted-foreground">
+        أدخل رقم هاتفك الذي حجزت به لعرض حجوزاتك — بدون تسجيل دخول.
+      </p>
+
+      <div className="flex items-end gap-2">
+        <div className="flex-1 space-y-1.5">
+          <label className="text-sm font-medium">رقم الهاتف</label>
+          <Input
+            dir="auto"
+            inputMode="numeric"
+            value={phone}
+            onChange={(e) =>
+              setPhone(e.target.value.replace(/\D/g, "").slice(0, 11))
+            }
+            placeholder="01xxxxxxxxx"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && phoneValid) lookup(phone);
+            }}
+          />
+        </div>
+        <Button disabled={!phoneValid || loading} onClick={() => lookup(phone)}>
+          <Search className="mr-1 h-4 w-4" /> عرض
+        </Button>
       </div>
 
-      {list === null ? (
+      {loading ? (
         <div className="flex items-center gap-2 text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" /> جارٍ التحميل…
         </div>
-      ) : list.length === 0 ? (
-        <p className="text-muted-foreground">لا توجد حجوزات بعد.</p>
+      ) : list === null ? null : list.length === 0 ? (
+        <p className="text-muted-foreground">لا توجد حجوزات بهذا الرقم.</p>
       ) : (
         <div className="space-y-3">
           {list.map((b) => {
@@ -107,11 +126,18 @@ export default function MyBookingsPage() {
               <Card key={b.id}>
                 <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
                   <div className="space-y-1">
-                    <div className="font-semibold">{dateLabelAr(b.date)}</div>
+                    <div className="font-semibold">{b.dateLabel}</div>
                     <div className="text-sm text-muted-foreground">
-                      الميعاد: {minutesToLabel(b.slotStart)}
-                      {b.note ? ` — ${b.note}` : ""}
+                      الميعاد: {b.slotLabel}
                     </div>
+                    <div className="text-sm text-muted-foreground">
+                      الشركة: {b.companyName}
+                    </div>
+                    {b.rescheduledByAdmin && (
+                      <div className="inline-flex items-center gap-1 rounded-md border border-blue-500/40 bg-blue-500/10 px-2 py-0.5 text-xs text-blue-700 dark:text-blue-300">
+                        تم تعديل الميعاد من قبل إدارة المخزن
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center gap-3">
                     <StatusBadge status={b.status} />

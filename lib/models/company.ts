@@ -8,6 +8,9 @@ export interface ICompany {
   phone?: string;
   ownerClerkId?: string; // Clerk user id that owns/books for this company
   active: boolean;
+  // How many hours one booking for this company occupies. The booking blocks
+  // the consecutive slots covering these hours. Normal companies = 1.
+  durationHours: number;
 }
 
 const CompanySchema = new Schema<ICompany>(
@@ -16,6 +19,7 @@ const CompanySchema = new Schema<ICompany>(
     phone: { type: String, trim: true },
     ownerClerkId: { type: String, index: true },
     active: { type: Boolean, default: true },
+    durationHours: { type: Number, default: 1, min: 0.5 },
   },
   { timestamps: true },
 );

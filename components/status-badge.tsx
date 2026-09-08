@@ -8,7 +8,7 @@ const MAP: Record<BookingStatus, { label: string; className: string }> = {
       "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300",
   },
   confirmed: {
-    label: "مؤكد",
+    label: "تم تأكيد الحجز",
     className:
       "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
   },

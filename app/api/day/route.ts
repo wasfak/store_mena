@@ -10,8 +10,10 @@ export const dynamic = "force-dynamic";
 // gate that company from booking.
 export async function GET(req: NextRequest) {
   const viewer = await getViewer();
-  if (!viewer.clerkId) {
-    return NextResponse.json({ error: "غير مسجل الدخول" }, { status: 401 });
+  // The day board exposes every booking's company name + phone, so it is
+  // admin-only. (The public booking flow uses /api/public/* instead.)
+  if (!viewer.isAdmin) {
+    return NextResponse.json({ error: "غير مصرح" }, { status: 403 });
   }
   const date = req.nextUrl.searchParams.get("date") || todayISO();
   const view = await buildDayView(date, viewer.company?.id);

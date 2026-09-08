@@ -16,6 +16,8 @@ export interface SlotBookingDTO {
   phone?: string;
   status: BookingStatus;
   note?: string;
+  slotsCount?: number;
+  continuation?: boolean;
 }
 
 export interface DaySlotDTO {
@@ -48,6 +50,7 @@ export interface CompanyDTO {
   name: string;
   phone?: string;
   active: boolean;
+  durationHours?: number;
   hasOwner?: boolean;
 }
 

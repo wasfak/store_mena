@@ -16,7 +16,8 @@ type NavIcon =
   | "schedule"
   | "settings"
   | "companies"
-  | "conflicts";
+  | "conflicts"
+  | "requests";
 
 const navItems: Array<{
   value: string;
@@ -25,8 +26,7 @@ const navItems: Array<{
   icon: NavIcon;
   adminOnly?: boolean;
 }> = [
-  { value: "home", label: "الرئيسية", href: "/", icon: "home" },
-  { value: "book", label: "احجز ميعاد", href: "/book", icon: "book" },
+  { value: "home", label: "احجز ميعاد", href: "/", icon: "book" },
   {
     value: "mybookings",
     label: "حجوزاتي",
@@ -34,10 +34,18 @@ const navItems: Array<{
     icon: "mybookings",
   },
   {
+    value: "requests",
+    label: "طلبات الحجز",
+    href: "/admin/booking-requests",
+    icon: "requests",
+    adminOnly: true,
+  },
+  {
     value: "schedule",
-    label: "جدول اليوم",
+    label: "جدول العمل اليومى للمخزن",
     href: "/schedule",
     icon: "schedule",
+    adminOnly: true,
   },
   {
     value: "settings",

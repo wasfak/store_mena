@@ -99,7 +99,7 @@ export default function ConflictsPage() {
               key={r.id}
               className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card p-3"
             >
-              <div className="flex items-center gap-2">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
                 <Ban className="h-4 w-4 text-red-500" />
                 <span className="font-medium">{r.nameA}</span>
                 <span className="text-muted-foreground">لا يجتمع مع</span>

@@ -8,10 +8,17 @@ export type BookingStatus = "pending" | "confirmed" | "rejected" | "cancelled";
 export interface IBooking {
   companyId: Types.ObjectId;
   date: string; // YYYY-MM-DD
-  slotStart: number; // minutes from midnight
+  slotStart: number; // minutes from midnight (0 for the simple day-only flow)
+  slotsCount: number; // number of consecutive slots this booking occupies
   status: BookingStatus;
   note?: string;
-  createdByClerkId: string;
+  // Who is coming (captured on the public, no-login booking form).
+  personName?: string;
+  personPhone?: string;
+  load?: string; // الحمولة — free-text for now; details TBD.
+  // Set when an admin moved the booking to a different date/slot than requested.
+  rescheduledByAdmin?: boolean;
+  createdByClerkId?: string; // set only when an admin/signed-in user booked
   createdByAdmin: boolean;
 }
 
@@ -24,7 +31,8 @@ const BookingSchema = new Schema<IBooking>(
       index: true,
     },
     date: { type: String, required: true, index: true },
-    slotStart: { type: Number, required: true },
+    slotStart: { type: Number, default: 0 },
+    slotsCount: { type: Number, default: 1, min: 1 },
     status: {
       type: String,
       enum: ["pending", "confirmed", "rejected", "cancelled"],
@@ -32,7 +40,11 @@ const BookingSchema = new Schema<IBooking>(
       index: true,
     },
     note: { type: String, trim: true },
-    createdByClerkId: { type: String, required: true },
+    personName: { type: String, trim: true },
+    personPhone: { type: String, trim: true },
+    load: { type: String, trim: true },
+    rescheduledByAdmin: { type: Boolean, default: false },
+    createdByClerkId: { type: String },
     createdByAdmin: { type: Boolean, default: false },
   },
   { timestamps: true },

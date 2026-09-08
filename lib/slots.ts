@@ -44,6 +44,13 @@ export function slotStarts(settings: Pick<ISettings, "startMinutes" | "endMinute
   return out;
 }
 
+/** How many consecutive slots are needed to cover `durationHours`. Min 1. */
+export function slotsForHours(durationHours: number, slotMinutes: number): number {
+  const h = durationHours && durationHours > 0 ? durationHours : 1;
+  if (slotMinutes <= 0) return 1;
+  return Math.max(1, Math.ceil((h * 60) / slotMinutes));
+}
+
 /** Is `slotStart` a valid slot start for the given settings? */
 export function isValidSlot(
   slotStart: number,
@@ -65,6 +72,20 @@ export function toISODate(d: Date): string {
 /** Today's date as "YYYY-MM-DD" (local). */
 export function todayISO(): string {
   return toISODate(new Date());
+}
+
+/** Current minutes-from-midnight (local). */
+export function minutesNow(): number {
+  const d = new Date();
+  return d.getHours() * 60 + d.getMinutes();
+}
+
+/**
+ * Earliest bookable slot-start (minutes) for a date: 0 for future days, and the
+ * current time for today (so already-started slots can't be booked).
+ */
+export function minBookableStart(dateISO: string): number {
+  return dateISO === todayISO() ? minutesNow() : 0;
 }
 
 /** Weekday (0=Sun..6=Sat) for a "YYYY-MM-DD" string, parsed as a local date. */
