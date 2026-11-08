@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
-import { Loader2, Plus } from "lucide-react";
+import { Building2, Plus } from "lucide-react";
+import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +11,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getJSON, sendJSON } from "@/lib/api";
 import type { CompanyDTO } from "@/lib/types";
+import { EmptyState, Loading, PageHeader } from "@/components/page-header";
 
 export default function CompaniesPage() {
   const [list, setList] = useState<CompanyDTO[] | null>(null);
@@ -79,10 +81,15 @@ export default function CompaniesPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">الشركات</h1>
+    <div className="space-y-8">
+      <PageHeader
+        icon={Building2}
+        eyebrow="الإدارة"
+        title="الشركات"
+        description="الشركات المسموح لها بالحجز، ومدة الحجز التلقائية لكل شركة."
+      />
 
-      <Card className="max-w-xl">
+      <Card className="border-beam max-w-3xl">
         <CardHeader>
           <CardTitle>إضافة شركة</CardTitle>
           <CardDescription>
@@ -91,39 +98,42 @@ export default function CompaniesPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap items-end gap-3">
-          <div className="space-y-1">
-            <label className="text-sm font-medium">اسم الشركة</label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} className="w-56" />
+          <div className="w-full space-y-1.5 sm:w-auto">
+            <label className="block text-sm font-medium">اسم الشركة</label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} className="w-full sm:w-56" />
           </div>
-          <div className="space-y-1">
-            <label className="text-sm font-medium">رقم التواصل</label>
-            <Input value={phone} onChange={(e) => setPhone(e.target.value)} className="w-44" inputMode="tel" />
+          <div className="w-full space-y-1.5 sm:w-auto">
+            <label className="block text-sm font-medium">رقم التواصل</label>
+            <Input value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full sm:w-44" inputMode="tel" />
           </div>
-          <div className="space-y-1">
-            <label className="text-sm font-medium">المدة (ساعات)</label>
+          <div className="w-full space-y-1.5 sm:w-auto">
+            <label className="block text-sm font-medium">المدة (ساعات)</label>
             <Input
               type="number"
               min={0.5}
               step={0.5}
               value={dur}
               onChange={(e) => setDur(e.target.value)}
-              className="w-28"
+              className="w-full sm:w-28"
             />
           </div>
-          <Button onClick={add} disabled={adding}>
-            <Plus className="mr-1 h-4 w-4" /> إضافة
+          <Button onClick={add} disabled={adding} className="h-10 w-full px-5 sm:w-auto">
+            <Plus className="size-4" /> إضافة
           </Button>
         </CardContent>
       </Card>
 
       {list === null ? (
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" /> جارٍ التحميل…
-        </div>
+        <Loading />
       ) : list.length === 0 ? (
-        <p className="text-muted-foreground">لا توجد شركات بعد.</p>
+        <EmptyState icon={Building2} title="لا توجد شركات بعد." hint="أضف أول شركة من النموذج بالأعلى." />
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-border">
+        <motion.div
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          className="glass overflow-x-auto rounded-3xl"
+        >
           <Table>
             <TableHeader>
               <TableRow>
@@ -138,8 +148,15 @@ export default function CompaniesPage() {
             <TableBody>
               {list.map((c) => (
                 <TableRow key={c.id}>
-                  <TableCell className="font-medium">{c.name}</TableCell>
-                  <TableCell>{c.phone || "—"}</TableCell>
+                  <TableCell className="font-medium">
+                    <span className="flex items-center gap-3">
+                      <span className="bg-brand-gradient grid size-8 shrink-0 place-items-center rounded-lg font-display text-xs font-bold text-white">
+                        {c.name.trim().charAt(0)}
+                      </span>
+                      {c.name}
+                    </span>
+                  </TableCell>
+                  <TableCell className="font-mono" dir="ltr">{c.phone || "—"}</TableCell>
                   <TableCell>
                     <Input
                       type="number"
@@ -176,7 +193,7 @@ export default function CompaniesPage() {
               ))}
             </TableBody>
           </Table>
-        </div>
+        </motion.div>
       )}
     </div>
   );

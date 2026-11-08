@@ -7,9 +7,14 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-geist-sans);
+  /* Arabic-first: IBM Plex Sans Arabic for body, Alexandria for display. */
+  --font-sans: var(--font-plex-ar), var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-heading: var(--font-alexandria), var(--font-geist-sans), sans-serif;
+  --font-display: var(--font-alexandria), var(--font-geist-sans), sans-serif;
+  --color-brand-1: var(--brand-1);
+  --color-brand-2: var(--brand-2);
+  --color-brand-3: var(--brand-3);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -49,30 +54,34 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  /* bundled font families (see app/layout.tsx) */
+  --font-alexandria: "Alexandria Variable";
+  --font-plex-ar: "Readex Pro Variable";
+
+  --background: oklch(0.985 0.004 70);
+  --foreground: oklch(0.2 0.02 270);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
+  --card-foreground: oklch(0.2 0.02 270);
+  --popover: oklch(1 0 0 / 0.92);
+  --popover-foreground: oklch(0.2 0.02 270);
+  --primary: oklch(0.2 0.02 270);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.96 0.006 70);
+  --secondary-foreground: oklch(0.2 0.02 270);
+  --muted: oklch(0.955 0.006 70);
+  --muted-foreground: oklch(0.5 0.02 270);
+  --accent: oklch(0.95 0.01 70);
+  --accent-foreground: oklch(0.2 0.02 270);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
+  --border: oklch(0.9 0.01 70);
+  --input: oklch(0.9 0.01 70);
+  --ring: oklch(0.72 0.16 60);
+  --chart-1: oklch(0.75 0.16 70);
+  --chart-2: oklch(0.65 0.2 35);
+  --chart-3: oklch(0.6 0.23 330);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
+  --radius: 0.75rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -81,30 +90,42 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+
+  /* Brand "sunset": amber → coral → fuchsia */
+  --brand-1: oklch(0.74 0.16 68);
+  --brand-2: oklch(0.65 0.21 35);
+  --brand-3: oklch(0.6 0.24 335);
+
+  --glass-bg: oklch(1 0 0 / 0.62);
+  --glass-border: oklch(0.2 0.02 270 / 0.09);
+  --glass-highlight: oklch(1 0 0 / 0.95);
+  --glass-shadow: 0 1px 2px oklch(0.2 0.02 270 / 0.04), 0 18px 50px -20px oklch(0.35 0.06 40 / 0.25);
+  --grain-opacity: 0.035;
+  --grid-line: oklch(0.2 0.02 270 / 0.06);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  --background: oklch(0.13 0.02 275);
+  --foreground: oklch(0.97 0.005 80);
+  --card: oklch(0.18 0.022 275);
+  --card-foreground: oklch(0.97 0.005 80);
+  --popover: oklch(0.19 0.024 275 / 0.92);
+  --popover-foreground: oklch(0.97 0.005 80);
+  --primary: oklch(0.96 0.005 80);
+  --primary-foreground: oklch(0.17 0.02 275);
+  --secondary: oklch(0.24 0.022 275);
+  --secondary-foreground: oklch(0.97 0.005 80);
+  --muted: oklch(0.23 0.022 275);
+  --muted-foreground: oklch(0.72 0.02 275);
+  --accent: oklch(0.26 0.03 275);
+  --accent-foreground: oklch(0.97 0.005 80);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
+  --border: oklch(1 0 0 / 9%);
+  --input: oklch(1 0 0 / 13%);
+  --ring: oklch(0.82 0.15 72);
+  --chart-1: oklch(0.84 0.15 75);
+  --chart-2: oklch(0.72 0.19 35);
+  --chart-3: oklch(0.68 0.22 335);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
   --sidebar: oklch(0.205 0 0);
@@ -115,21 +136,234 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+
+  --brand-1: oklch(0.85 0.15 78);
+  --brand-2: oklch(0.73 0.19 38);
+  --brand-3: oklch(0.69 0.23 338);
+
+  --glass-bg: oklch(0.2 0.025 275 / 0.5);
+  --glass-border: oklch(1 0 0 / 0.1);
+  --glass-highlight: oklch(1 0 0 / 0.13);
+  --glass-shadow: 0 1px 2px oklch(0 0 0 / 0.3), 0 24px 60px -24px oklch(0 0 0 / 0.75);
+  --grain-opacity: 0.06;
+  --grid-line: oklch(1 0 0 / 0.045);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
-  body {
-    @apply bg-background text-foreground font-sans; /* Add font-sans here */
-  }
   html {
     @apply font-sans;
+    /* full-bleed (100vw) decorations never cause sideways scroll */
+    overflow-x: clip;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+    overflow-x: clip;
+    text-align: left;
+  }
+  /* Arabic copy inside an LTR layout: each text block resolves its own bidi
+     direction (so ؟ and . land on the correct side) but stays left-aligned. */
+  :where(p, h1, h2, h3, h4, label, dt, dd, li) {
+    unicode-bidi: plaintext;
+  }
+  :where(input, textarea) {
+    unicode-bidi: plaintext;
+    text-align: left;
+  }
+  [data-sonner-toast] :where([data-title], [data-description]) {
+    unicode-bidi: plaintext;
+  }
+  ::selection {
+    background: color-mix(in oklch, var(--brand-2) 35%, transparent);
+  }
+  /* Native date/time pickers follow the theme. */
+  .dark input[type="date"],
+  .dark input[type="time"] {
+    color-scheme: dark;
   }
 }
 
-/* Moving gradient for the BrandLogo wordmark (cyan → purple → emerald). */
+/* ───────────────────────── Utilities ───────────────────────── */
+
+@utility glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(18px) saturate(170%);
+  -webkit-backdrop-filter: blur(18px) saturate(170%);
+  border: 1px solid var(--glass-border);
+  box-shadow:
+    inset 0 1px 0 0 var(--glass-highlight),
+    var(--glass-shadow);
+}
+
+@utility text-gradient {
+  background-image: linear-gradient(100deg, var(--brand-1), var(--brand-2) 45%, var(--brand-3) 90%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: gradient-pan 6s ease-in-out infinite alternate;
+}
+
+@utility bg-brand-gradient {
+  background-image: linear-gradient(110deg, var(--brand-1), var(--brand-2) 55%, var(--brand-3));
+  background-size: 180% 100%;
+}
+
+@utility bg-grid {
+  background-image:
+    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, #000 30%, transparent 75%);
+}
+
+/* ───────────────────────── Effects ───────────────────────── */
+
+.grain-overlay {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  opacity: var(--grain-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+@property --beam-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+.border-beam {
+  position: relative;
+  isolation: isolate;
+}
+.border-beam::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: conic-gradient(
+    from var(--beam-angle),
+    transparent 0 60%,
+    var(--brand-1) 72%,
+    var(--brand-2) 82%,
+    var(--brand-3) 90%,
+    transparent 97%
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+  animation: beam-spin 7s linear infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.shine {
+  position: relative;
+  overflow: hidden;
+}
+.shine::after {
+  content: "";
+  position: absolute;
+  inset: -50% auto -50% -60%;
+  width: 40%;
+  background: linear-gradient(100deg, transparent, oklch(1 0 0 / 0.5), transparent);
+  transform: skewX(-20deg) translateX(0);
+  animation: shine-sweep 3.6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.float-slow {
+  animation: float-y 7s ease-in-out infinite;
+}
+.float-med {
+  animation: float-y 5.5s ease-in-out infinite;
+  animation-delay: -2s;
+}
+.float-fast {
+  animation: float-y 4.5s ease-in-out infinite;
+  animation-delay: -1s;
+}
+.drive-x {
+  animation: drive-x 9s linear infinite;
+}
+
+@utility mask-fade-x {
+  mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
+}
+.marquee-track {
+  animation: marquee var(--marquee-duration, 40s) linear infinite;
+}
+.marquee-track[data-reverse="true"] {
+  animation-direction: reverse;
+}
+.marquee:hover .marquee-track {
+  animation-play-state: paused;
+}
+@keyframes marquee {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track {
+    animation: none !important;
+  }
+}
+
+/* ───────────────────────── Keyframes ───────────────────────── */
+@keyframes gradient-pan {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 100% 50%;
+  }
+}
+@keyframes beam-spin {
+  to {
+    --beam-angle: 360deg;
+  }
+}
+@keyframes shine-sweep {
+  0%,
+  55% {
+    transform: skewX(-20deg) translateX(0);
+  }
+  100% {
+    transform: skewX(-20deg) translateX(420%);
+  }
+}
+@keyframes float-y {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -12px, 0);
+  }
+}
+@keyframes drive-x {
+  from {
+    transform: translate3d(-30%, 0, 0);
+  }
+  to {
+    transform: translate3d(130%, 0, 0);
+  }
+}
+
+/* Moving gradient for the BrandLogo wordmark. */
 @keyframes brand-gradient-move {
   0%,
   100% {
@@ -149,5 +383,17 @@
   50% {
     opacity: 0.6;
     background-position: 100% 50%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .float-slow,
+  .float-med,
+  .float-fast,
+  .drive-x,
+  .shine::after,
+  .border-beam::before,
+  .text-gradient {
+    animation: none !important;
   }
 }

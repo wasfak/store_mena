@@ -3,71 +3,42 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import * as React from "react";
-import { Home, CalendarPlus, ClipboardList, CalendarDays, Settings, Building2, Ban, Inbox } from "lucide-react";
-
+import { motion } from "motion/react";
+import {
+  Ban,
+  Building2,
+  CalendarDays,
+  CalendarPlus,
+  ClipboardList,
+  Home,
+  Inbox,
+  Settings,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { Show, SignInButton, SignUpButton, UserButton } from '@clerk/nextjs'
+import { Show, SignInButton, SignUpButton, UserButton } from "@clerk/nextjs";
+
 import { BrandLogo } from "@/components/ui/brand-logo";
 import { ThemeToggle } from "@/components/theme";
+import { cn } from "@/lib/utils";
 
-type IconName = "home" | "book" | "mybookings" | "schedule" | "settings" | "companies" | "conflicts" | "requests";
+type IconName =
+  | "home"
+  | "book"
+  | "mybookings"
+  | "schedule"
+  | "settings"
+  | "companies"
+  | "conflicts"
+  | "requests";
 
 type Item = {
   value: string;
   label: string;
-  href?: string;
+  href: string;
   icon?: IconName;
 };
 
-type NotchNavProps = {
-  items: Item[];
-  value?: string;
-  defaultValue?: string;
-  onValueChange?: (value: string) => void;
-  ariaLabel?: string;
-  className?: string;
-};
-
-export function NotchNav({
-  items,
-  value,
-  defaultValue,
-  onValueChange,
-  ariaLabel = "Primary",
-  className,
-}: NotchNavProps) {
-  const pathname = usePathname();
-  const isControlled = value !== undefined;
-
-  // Internal state only; when controlled, `active` is derived from `value`
-  // directly so we never mirror a prop into state inside an effect.
-  const [internalActive, setInternalActive] = React.useState<string>(
-    defaultValue ?? items[0]?.value ?? "",
-  );
-  const active = isControlled ? (value as string) : internalActive;
-
-  const [ready, setReady] = React.useState(false);
-  const [reducedMotion, setReducedMotion] = React.useState(false);
-
-  const containerRef = React.useRef<HTMLDivElement | null>(null);
-  const itemRefs = React.useRef<
-    Array<HTMLAnchorElement | HTMLButtonElement | null>
-  >([]);
-  const [notchRect, setNotchRect] = React.useState<{
-    left: number;
-    width: number;
-  } | null>(null);
-
-  const activeIndex = React.useMemo(
-    () =>
-      Math.max(
-        0,
-        items.findIndex((i) => i.value === active),
-      ),
-    [items, active],
-  );
-
-  const iconMap: Record<IconName, LucideIcon> = {
+const ICONS: Record<IconName, LucideIcon> = {
   home: Home,
   book: CalendarPlus,
   mybookings: ClipboardList,
@@ -78,232 +49,140 @@ export function NotchNav({
   requests: Inbox,
 };
 
-  const updateNotch = React.useCallback(() => {
-    const c = containerRef.current;
-    const el = itemRefs.current[activeIndex];
-    if (!c || !el) return;
-    const cRect = c.getBoundingClientRect();
-    const eRect = el.getBoundingClientRect();
-    const left = eRect.left - cRect.left;
-    const width = eRect.width;
-    setNotchRect({ left, width });
-    setReady(true);
-  }, [activeIndex]);
+// Floating glass navbar with the animated notch: the active pill and the
+// notch underneath glide between items via shared-layout animation.
+export function NotchNav({
+  items,
+  ariaLabel = "التنقل الرئيسي",
+  className,
+}: {
+  items: Item[];
+  defaultValue?: string;
+  ariaLabel?: string;
+  className?: string;
+}) {
+  const pathname = usePathname();
+  const itemRefs = React.useRef<Array<HTMLAnchorElement | null>>([]);
 
-  // Sync active item from the URL — this reacts to an external system (the
-  // router), so setState here is legitimate.
-  React.useEffect(() => {
-    if (!isControlled && pathname) {
-      const activeItem = items.find(
-        (item) =>
-          item.href === pathname ||
-          (item.href && pathname.startsWith(item.href + "/")),
-      );
-      if (activeItem?.value) {
-        React.startTransition(() => setInternalActive(activeItem.value));
-      }
-    }
-  }, [pathname, items, isControlled]);
-
-  React.useLayoutEffect(() => {
-    updateNotch();
-    const onResize = () => updateNotch();
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, [updateNotch]);
+  const active =
+    items.find(
+      (i) => i.href === pathname || (i.href !== "/" && pathname?.startsWith(i.href + "/")),
+    )?.value ?? "";
+  const activeIndex = Math.max(
+    0,
+    items.findIndex((i) => i.value === active),
+  );
 
   const focusItem = (index: number) => {
-    const el = itemRefs.current[Math.max(0, Math.min(items.length - 1, index))];
-    el?.focus();
+    itemRefs.current[Math.max(0, Math.min(items.length - 1, index))]?.focus();
   };
-
-  const commitChange = (next: string) => {
-    if (!isControlled) setInternalActive(next);
-    onValueChange?.(next);
-  };
-
-  React.useEffect(() => {
-    const mql = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const onChange = () => setReducedMotion(mql.matches);
-    onChange();
-    mql.addEventListener?.("change", onChange);
-    return () => mql.removeEventListener?.("change", onChange);
-  }, []);
 
   return (
-    <header className="relative flex w-full items-center gap-2 p-2 h-16 sm:gap-4 sm:p-4">
-      <Link href="/" className="shrink-0" aria-label="Home">
+    <div className="glass flex w-full items-center gap-2 rounded-full py-1.5 ps-4 pe-1.5 sm:gap-4 sm:ps-5">
+      <Link href="/" className="shrink-0" aria-label="الرئيسية">
         <BrandLogo />
       </Link>
+
       <nav
         aria-label={ariaLabel}
-        className={[
+        className={cn(
           "flex min-w-0 flex-1 justify-start overflow-x-auto md:justify-center [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
           className,
-        ]
-          .filter(Boolean)
-          .join(" ")}
+        )}
       >
-        <div
-          ref={containerRef}
-          className="relative rounded-lg border border-border bg-secondary text-foreground"
+        <ul
+          role="menubar"
+          className="flex items-center gap-0.5 p-1"
+          onKeyDown={(e) => {
+            if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) return;
+            e.preventDefault();
+            if (e.key === "ArrowRight") focusItem(activeIndex + 1);
+            if (e.key === "ArrowLeft") focusItem(activeIndex - 1);
+            if (e.key === "Home") focusItem(0);
+            if (e.key === "End") focusItem(items.length - 1);
+          }}
         >
-          <ul
-            role="menubar"
-            className="flex items-center justify-center gap-1 p-1"
-            onKeyDown={(e) => {
-              const key = e.key;
-              if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(key))
-                return;
-              e.preventDefault();
-              if (key === "ArrowRight") focusItem(activeIndex + 1);
-              if (key === "ArrowLeft") focusItem(activeIndex - 1);
-              if (key === "Home") focusItem(0);
-              if (key === "End") focusItem(items.length - 1);
-            }}
-          >
-            {items.map((item, idx) => {
-              const isActive = item.value === active;
-              const Icon = item.icon ? iconMap[item.icon] : undefined;
-              const content = (
-                <>
-                  {Icon && (
-                    <Icon
-                      className="h-4 w-4 shrink-0 md:mr-2"
+          {items.map((item, idx) => {
+            const isActive = item.value === active;
+            const Icon = item.icon ? ICONS[item.icon] : undefined;
+            return (
+              <li key={item.value} role="none" className="relative">
+                <Link
+                  ref={(el) => {
+                    itemRefs.current[idx] = el;
+                  }}
+                  href={item.href}
+                  prefetch={false}
+                  role="menuitem"
+                  aria-label={item.label}
+                  title={item.label}
+                  aria-current={isActive ? "page" : undefined}
+                  tabIndex={isActive || (!active && idx === 0) ? 0 : -1}
+                  className={cn(
+                    "relative z-10 inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium outline-none transition-colors duration-300",
+                    "focus-visible:ring-2 focus-visible:ring-ring",
+                    isActive ? "text-foreground" : "text-foreground/60 hover:text-foreground",
+                  )}
+                >
+                  {Icon && <Icon className="size-4 shrink-0" aria-hidden="true" />}
+                  <span className="hidden whitespace-nowrap xl:inline">{item.label}</span>
+                </Link>
+
+                {isActive && (
+                  <>
+                    <motion.span
+                      layoutId="notch-pill"
                       aria-hidden="true"
+                      className="absolute inset-0 rounded-full bg-foreground/[0.07] ring-1 ring-foreground/10 dark:bg-white/[0.08]"
+                      transition={{ type: "spring", stiffness: 420, damping: 34 }}
                     />
-                  )}
-                  <span className="hidden whitespace-nowrap md:inline">
-                    {item.label}
-                  </span>
-                </>
-              );
-
-              return (
-                <li key={item.value} role="none">
-                  {item.href ? (
-                    <Link
-                      ref={(el) => {
-                        itemRefs.current[idx] = el;
-                      }}
-                      href={item.href}
-                      prefetch={false}
-                      role="menuitem"
-                      aria-label={item.label}
-                      title={item.label}
-                      aria-current={isActive ? "page" : undefined}
-                      tabIndex={isActive ? 0 : -1}
-                      onClick={() => commitChange(item.value)}
-                      className={[
-                        "relative inline-flex items-center rounded-md px-3 py-2 text-sm font-medium outline-none transition-colors",
-                        "focus-visible:ring-2 focus-visible:ring-ring",
-                        isActive
-                          ? "text-primary"
-                          : "text-foreground/70 hover:text-foreground",
-                      ].join(" ")}
+                    <motion.span
+                      layoutId="notch-mark"
+                      aria-hidden="true"
+                      className="pointer-events-none absolute inset-x-2 -bottom-[5px] h-[7px] text-brand-1"
+                      transition={{ type: "spring", stiffness: 420, damping: 34 }}
                     >
-                      {content}
-                    </Link>
-                  ) : (
-                    <button
-                      ref={(el) => {
-                        itemRefs.current[idx] = el;
-                      }}
-                      role="menuitem"
-                      aria-label={item.label}
-                      title={item.label}
-                      aria-current={isActive ? "page" : undefined}
-                      aria-pressed={isActive || undefined}
-                      tabIndex={isActive ? 0 : -1}
-                      onClick={() => commitChange(item.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          commitChange(item.value);
-                        }
-                      }}
-                      className={[
-                        "relative rounded-md px-3 py-2 text-sm font-medium outline-none transition-colors",
-                        "focus-visible:ring-2 focus-visible:ring-ring",
-                        isActive
-                          ? "text-primary"
-                          : "text-foreground/70 hover:text-foreground",
-                      ].join(" ")}
-                    >
-                      {content}
-                    </button>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-
-          {notchRect && (
-            <div
-              aria-hidden="true"
-              className={[
-                "pointer-events-none absolute",
-                "overflow-hidden rounded-sm",
-                "transition-all",
-                reducedMotion ? "duration-0" : "duration-300",
-                "ease-[cubic-bezier(0.22,1,0.36,1)]",
-                ready ? "opacity-100" : "opacity-0",
-              ].join(" ")}
-              style={{
-                transform: `translate3d(${notchRect.left}px, 0, 0)`,
-                width: notchRect.width,
-                bottom: -4,
-                height: 10,
-                willChange: "transform, width, opacity",
-              }}
-            >
-              <svg
-                width="100%"
-                height="100%"
-                viewBox="0 0 100 20"
-                preserveAspectRatio="none"
-                className="block text-primary"
-              >
-                <path
-                  d="
-                    M 2 1
-                    H 98
-                    Q 99 1 99 2
-                    V 10
-                    H 88
-                    Q 87.2 10 86.6 11.4
-                    L 84.8 18
-                    H 15.2
-                    L 13.4 11.4
-                    Q 12.8 10 12 10
-                    H 2
-                    Q 1 10 1 9
-                    V 2
-                    Q 1 1 2 1
-                    Z
-                  "
-                  fill="currentColor"
-                />
-              </svg>
-            </div>
-          )}
-        </div>
+                      <svg
+                        width="100%"
+                        height="100%"
+                        viewBox="0 0 100 20"
+                        preserveAspectRatio="none"
+                        className="block drop-shadow-[0_0_6px_var(--brand-1)]"
+                      >
+                        <path
+                          d="M 2 1 H 98 Q 99 1 99 2 V 10 H 88 Q 87.2 10 86.6 11.4 L 84.8 18 H 15.2 L 13.4 11.4 Q 12.8 10 12 10 H 2 Q 1 10 1 9 V 2 Q 1 1 2 1 Z"
+                          fill="currentColor"
+                        />
+                      </svg>
+                    </motion.span>
+                  </>
+                )}
+              </li>
+            );
+          })}
+        </ul>
       </nav>
 
-      <div className="shrink-0 flex items-center gap-3">
+      <div className="flex shrink-0 items-center gap-2">
         <ThemeToggle />
         <Show when="signed-out">
-              <SignInButton />
-              <SignUpButton>
-                <button className="bg-purple-700 text-white rounded-full font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 cursor-pointer">
-                  دخول
-                </button>
-              </SignUpButton>
-            </Show>
-            <Show when="signed-in">
-              <UserButton />
-            </Show>
+          <SignInButton>
+            <button className="hidden h-9 rounded-full px-3 text-sm font-medium text-foreground/70 transition-colors hover:text-foreground sm:inline-flex sm:items-center">
+              تسجيل الدخول
+            </button>
+          </SignInButton>
+          <SignUpButton>
+            <button className="shine bg-brand-gradient h-9 cursor-pointer rounded-full px-4 text-sm font-semibold text-white shadow-lg shadow-brand-2/30">
+              دخول
+            </button>
+          </SignUpButton>
+        </Show>
+        <Show when="signed-in">
+          <div className="grid size-9 place-items-center">
+            <UserButton />
+          </div>
+        </Show>
       </div>
-    </header>
+    </div>
   );
 }

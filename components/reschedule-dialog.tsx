@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { CalendarClock, Loader2 } from "lucide-react";
+import { CalendarClock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -14,7 +14,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { MonthCalendar } from "@/components/ui/month-calendar";
-import { cn } from "@/lib/utils";
+import { SlotPicker } from "@/components/slot-picker";
+import { Loading } from "@/components/page-header";
 import { getJSON, sendJSON } from "@/lib/api";
 
 interface DayOpt {
@@ -107,21 +108,19 @@ export function RescheduleDialog({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button size="sm" variant="outline" className="flex-1">
-          <CalendarClock className="mr-1 h-4 w-4" /> تعديل الميعاد
+          <CalendarClock className="size-4" /> تعديل الميعاد
         </Button>
       </DialogTrigger>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>تعديل ميعاد الحجز</DialogTitle>
+          <DialogTitle className="font-display text-lg">تعديل ميعاد الحجز</DialogTitle>
           <DialogDescription>
             اختر يوماً وميعاداً جديداً — سيُرسل للعميل ويظهر في حجوزاته.
           </DialogDescription>
         </DialogHeader>
 
         {loadingDays ? (
-          <div className="flex items-center gap-2 py-6 text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" /> جارٍ التحميل…
-          </div>
+          <Loading />
         ) : days.length === 0 ? (
           <p className="py-4 text-sm text-muted-foreground">
             لا توجد مواعيد متاحة حالياً.
@@ -139,31 +138,13 @@ export function RescheduleDialog({
                 اختر يوماً من التقويم لعرض المواعيد المتاحة.
               </p>
             ) : slotsLoading ? (
-              <div className="flex items-center gap-2 py-1 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" /> جارٍ تحميل المواعيد…
-              </div>
+              <Loading label="جارٍ تحميل المواعيد…" />
             ) : slots.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 لا توجد مواعيد متاحة في هذا اليوم.
               </p>
             ) : (
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {slots.map((s) => (
-                  <button
-                    key={s.start}
-                    type="button"
-                    onClick={() => setSlotStart(s.start)}
-                    className={cn(
-                      "rounded-lg border px-2 py-2 text-sm transition-colors",
-                      slotStart === s.start
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border hover:border-primary/50 hover:bg-accent",
-                    )}
-                  >
-                    {s.label}
-                  </button>
-                ))}
-              </div>
+              <SlotPicker slots={slots} value={slotStart} onChange={setSlotStart} />
             )}
           </div>
         )}
@@ -172,8 +153,9 @@ export function RescheduleDialog({
           <Button
             onClick={save}
             disabled={!date || slotStart === null || saving}
+            className="w-full sm:w-auto"
           >
-            {saving ? "جارٍ الحفظ…" : "حفظ وإرسال"}
+            {saving ? "جارٍ الحفظ" : "حفظ وإرسال"}
           </Button>
         </DialogFooter>
       </DialogContent>

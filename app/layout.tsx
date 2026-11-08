@@ -5,6 +5,10 @@ import { ThemeProvider } from "@/components/theme";
 import { NotchNav } from "@/components/ui/notch-nav";
 import { Toaster } from "@/components/ui/sonner";
 
+// Arabic fonts are bundled with the app (fontsource) instead of fetched from
+// Google Fonts at startup, which isn't reachable on every network.
+import "@fontsource-variable/alexandria/index.css";
+import "@fontsource-variable/readex-pro/index.css";
 import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import { currentUserIsAdmin } from "@/lib/admins";
@@ -95,8 +99,20 @@ export default async function RootLayout({
       >
         <ClerkProvider>
           <ThemeProvider>
-            <header className="border-b border-border bg-card/90 backdrop-blur">
-              <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
+            {/* ambient backdrop: warm glows + fading grid + film grain */}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none fixed inset-0 -z-10 overflow-hidden"
+            >
+              <div className="absolute -top-40 -left-32 h-[560px] w-[760px] rounded-full bg-[radial-gradient(closest-side,color-mix(in_oklch,var(--brand-1)_22%,transparent),transparent)]" />
+              <div className="absolute -top-24 -right-40 h-[520px] w-[720px] rounded-full bg-[radial-gradient(closest-side,color-mix(in_oklch,var(--brand-3)_18%,transparent),transparent)]" />
+              <div className="absolute bottom-[-20%] left-1/3 h-[480px] w-[680px] rounded-full bg-[radial-gradient(closest-side,color-mix(in_oklch,var(--brand-2)_10%,transparent),transparent)]" />
+              <div className="bg-grid absolute inset-0" />
+            </div>
+            <div className="grain-overlay" aria-hidden="true" />
+
+            <header className="sticky top-3 z-50 mt-3 px-3 sm:top-4 sm:mt-4 sm:px-6">
+              <div className="mx-auto w-full max-w-7xl">
                 <NotchNav
                   items={items}
                   defaultValue="home"
@@ -104,9 +120,12 @@ export default async function RootLayout({
                 />
               </div>
             </header>
-            <main className="flex-1 mx-auto w-full max-w-7xl px-4 py-8 sm:px-6">
+            <main className="flex-1 mx-auto w-full max-w-7xl px-4 pb-16 pt-10 sm:px-6 sm:pt-14">
               {children}
             </main>
+            <footer className="mx-auto w-full max-w-7xl border-t border-border px-4 py-6 text-center text-xs text-muted-foreground sm:px-6">
+              مواعيد المخزن — نظام حجز مواعيد تنزيل البضاعة
+            </footer>
             <Toaster position="top-right" richColors />
           </ThemeProvider>
         </ClerkProvider>

@@ -88,6 +88,16 @@ export function minBookableStart(dateISO: string): number {
   return dateISO === todayISO() ? minutesNow() : 0;
 }
 
+/**
+ * Has this booking's time already come? True for earlier days, and for today
+ * once the slot has started. Day-only bookings (slotStart 0) last all day.
+ */
+export function slotHasStarted(dateISO: string, slotStart: number): boolean {
+  const today = todayISO();
+  if (dateISO < today) return true;
+  return dateISO === today && slotStart > 0 && slotStart <= minutesNow();
+}
+
 /** Weekday (0=Sun..6=Sat) for a "YYYY-MM-DD" string, parsed as a local date. */
 export function weekdayOf(dateISO: string): number {
   const [y, m, d] = dateISO.split("-").map(Number);

@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Save, Settings } from "lucide-react";
+import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -10,6 +11,8 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { getJSON, sendJSON } from "@/lib/api";
 import { minutesToHHMM, hhmmToMinutes, weekdayNameAr, slotStarts, slotRangeLabel } from "@/lib/slots";
 import type { SettingsDTO } from "@/lib/types";
+import { Loading, PageHeader } from "@/components/page-header";
+import { cn } from "@/lib/utils";
 
 // Order the day checkboxes Sat..Fri visually is optional; keep 0..6 (Sun..Sat).
 const DAYS = [0, 1, 2, 3, 4, 5, 6];
@@ -22,12 +25,7 @@ export default function SettingsPage() {
     getJSON<SettingsDTO>("/api/settings").then(setS).catch((e) => toast.error(e.message));
   }, []);
 
-  if (!s)
-    return (
-      <div className="flex items-center gap-2 text-muted-foreground">
-        <Loader2 className="h-4 w-4 animate-spin" /> جارٍ التحميل…
-      </div>
-    );
+  if (!s) return <Loading />;
 
   function toggleDay(d: number) {
     setS((prev) =>
@@ -63,24 +61,38 @@ export default function SettingsPage() {
   const preview = slotStarts(s);
 
   return (
-    <div className="max-w-2xl space-y-6">
-      <h1 className="text-2xl font-bold">إعدادات المخزن</h1>
+    <div className="max-w-3xl space-y-6">
+      <PageHeader
+        icon={Settings}
+        eyebrow="الإدارة"
+        title="إعدادات المخزن"
+        description="أيام العمل وساعاته وطريقة تقسيم اليوم إلى خانات."
+        className="mb-8"
+      />
 
       <Card>
         <CardHeader>
           <CardTitle>أيام العمل</CardTitle>
           <CardDescription>حدّد الأيام التي يستقبل فيها المخزن الشركات.</CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-wrap gap-4">
-          {DAYS.map((d) => (
-            <label key={d} className="flex items-center gap-2 text-sm">
-              <Checkbox
-                checked={s.workingDays.includes(d)}
-                onCheckedChange={() => toggleDay(d)}
-              />
-              {weekdayNameAr(d)}
-            </label>
-          ))}
+        <CardContent className="flex flex-wrap gap-2">
+          {DAYS.map((d) => {
+            const on = s.workingDays.includes(d);
+            return (
+              <label
+                key={d}
+                className={cn(
+                  "flex cursor-pointer items-center gap-2 rounded-full border px-4 py-2 text-sm transition-all duration-300",
+                  on
+                    ? "border-brand-1/50 bg-brand-1/10 text-foreground shadow-[0_0_20px_-6px] shadow-brand-1/50"
+                    : "border-border bg-background/40 text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <Checkbox checked={on} onCheckedChange={() => toggleDay(d)} />
+                {weekdayNameAr(d)}
+              </label>
+            );
+          })}
         </CardContent>
       </Card>
 
@@ -134,30 +146,37 @@ export default function SettingsPage() {
             <p className="text-sm text-red-600">لا توجد خانات — راجع الأوقات والمدة.</p>
           ) : (
             <div className="flex flex-wrap gap-2">
-              {preview.map((start) => (
-                <span
+              {preview.map((start, i) => (
+                <motion.span
                   key={start}
-                  className="rounded-md border border-border bg-muted/40 px-2 py-1 text-xs"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3, delay: Math.min(i * 0.02, 0.5) }}
+                  className="rounded-xl border border-border bg-background/40 px-2.5 py-1.5 text-xs tabular-nums"
+                  dir="rtl"
                 >
                   {slotRangeLabel(start, s.slotMinutes)}
-                </span>
+                </motion.span>
               ))}
             </div>
           )}
         </CardContent>
       </Card>
 
-      <Button onClick={save} disabled={saving}>
-        {saving ? "جارٍ الحفظ…" : "حفظ الإعدادات"}
-      </Button>
+      <div className="sticky bottom-4 z-10 flex justify-end">
+        <Button size="lg" onClick={save} disabled={saving} className="shine rounded-2xl px-7">
+          <Save className="size-4" />
+          {saving ? "جارٍ الحفظ" : "حفظ الإعدادات"}
+        </Button>
+      </div>
     </div>
   );
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="space-y-1">
-      <label className="text-sm font-medium">{label}</label>
+    <div className="space-y-1.5">
+      <label className="block text-sm font-medium">{label}</label>
       {children}
     </div>
   );

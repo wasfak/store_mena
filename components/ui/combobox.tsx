@@ -44,7 +44,7 @@ export function Combobox({
         <button
           type="button"
           className={cn(
-            "flex h-8 w-full items-center justify-between gap-1.5 rounded-lg border border-input bg-transparent py-2 pr-2 pl-2.5 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30 dark:hover:bg-input/50",
+            "group/cb flex h-10 w-full items-center justify-between gap-1.5 rounded-xl border border-input bg-background/50 py-2 pr-2.5 pl-3.5 text-sm outline-none transition-[border-color,box-shadow,background-color] duration-300 focus-visible:border-brand-1/70 focus-visible:ring-4 focus-visible:ring-brand-1/15 data-[state=open]:border-brand-1/70 data-[state=open]:ring-4 data-[state=open]:ring-brand-1/15 dark:bg-white/[0.04] dark:hover:bg-white/[0.07]",
             className,
           )}
         >
@@ -54,27 +54,27 @@ export function Combobox({
           >
             {value || placeholder}
           </span>
-          <ChevronDown className="size-4 shrink-0 text-muted-foreground" />
+          <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform duration-300 group-data-[state=open]/cb:rotate-180" />
         </button>
       </PopoverPrimitive.Trigger>
       <PopoverPrimitive.Portal>
         <PopoverPrimitive.Content
           align="start"
           sideOffset={4}
-          className="z-50 w-(--radix-popover-trigger-width) min-w-52 rounded-lg bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10"
+          className="z-50 w-(--radix-popover-trigger-width) min-w-52 rounded-2xl bg-popover p-1.5 text-popover-foreground shadow-2xl ring-1 ring-foreground/10 backdrop-blur-xl data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95"
         >
           <Input
             autoFocus
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder={filterPlaceholder}
-            className="mb-1 h-8"
+            className="mb-1.5 h-9"
             dir="auto"
           />
           <div className="max-h-60 overflow-auto">
             {filtered.length === 0 ? (
               <p className="px-2 py-4 text-center text-sm text-muted-foreground">
-                No match
+                لا توجد نتائج
               </p>
             ) : (
               filtered.map((o) => (
@@ -88,12 +88,12 @@ export function Combobox({
                     setQ("");
                   }}
                   className={cn(
-                    "flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent hover:text-accent-foreground",
-                    o === value && "bg-accent/50",
+                    "flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition-colors hover:bg-accent hover:text-accent-foreground",
+                    o === value && "bg-brand-1/10 text-foreground",
                   )}
                 >
                   <span className="truncate">{o}</span>
-                  {o === value && <Check className="size-4 shrink-0" />}
+                  {o === value && <Check className="size-4 shrink-0 text-brand-1" />}
                 </button>
               ))
             )}

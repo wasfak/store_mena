@@ -1,19 +1,42 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { AnimatePresence, motion } from "motion/react";
 import { toast } from "sonner";
-import { CalendarCheck, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+  ArrowRight,
+  Building2,
+  CalendarCheck,
+  CalendarDays,
+  Check,
+  CircleAlert,
+  Clock,
+  Package,
+  Phone,
+  Plus,
+  UserRound,
+  Warehouse,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Combobox } from "@/components/ui/combobox";
 import { MonthCalendar } from "@/components/ui/month-calendar";
+import { SlotPicker } from "@/components/slot-picker";
+import { Loading } from "@/components/page-header";
+import { AuroraShader } from "@/components/fx/aurora-shader";
+import { RotatingWords } from "@/components/fx/rotating-words";
+import { WordsReveal } from "@/components/fx/words-reveal";
+import { fireConfetti } from "@/components/fx/confetti";
+import { DockScene } from "@/components/home/dock-scene";
+import { FloatingParcels, LiveClock } from "@/components/home/hero-extras";
+import {
+  CompaniesMarquee,
+  FinalCta,
+  HowItWorks,
+  StatsStrip,
+} from "@/components/home/sections";
 import { cn } from "@/lib/utils";
 import { getJSON, sendJSON } from "@/lib/api";
 
@@ -29,6 +52,14 @@ interface SlotOpt {
   start: number;
   label: string;
 }
+interface BookedSummary {
+  company: string;
+  person: string;
+  dateLabel: string;
+  slotLabel: string;
+}
+
+const EASE = [0.22, 1, 0.36, 1] as const;
 
 export default function Home() {
   const [companies, setCompanies] = useState<CompanyOpt[]>([]);
@@ -47,6 +78,12 @@ export default function Home() {
   const [slotStart, setSlotStart] = useState<number | null>(null);
 
   const [submitting, setSubmitting] = useState(false);
+  const [booked, setBooked] = useState<BookedSummary | null>(null);
+  const submitRef = useRef<HTMLButtonElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBooking = () =>
+    cardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
 
   const companyNames = useMemo(() => companies.map((c) => c.name), [companies]);
   const companyId = useMemo(
@@ -131,6 +168,19 @@ export default function Home() {
     !!date &&
     slotStart !== null;
 
+  const steps: Array<{ label: string; hint: string; done: boolean; icon: LucideIcon }> = [
+    { label: "اختر شركتك", hint: "من قائمة الشركات المسجلة", done: !!companyId, icon: Building2 },
+    {
+      label: "بياناتك",
+      hint: "الاسم ورقم الهاتف",
+      done: !!personName.trim() && phoneValid,
+      icon: UserRound,
+    },
+    { label: "اختر اليوم", hint: "الأيام المتاحة فقط", done: !!date, icon: CalendarDays },
+    { label: "اختر الميعاد", hint: "واحجز على طول", done: slotStart !== null, icon: Clock },
+  ];
+  const doneCount = steps.filter((s) => s.done).length;
+
   async function submit() {
     if (!canSubmit) {
       toast.error("من فضلك أكمل كل الحقول.");
@@ -147,6 +197,14 @@ export default function Home() {
         slotStart,
       });
       toast.success("تم إرسال طلب الحجز بنجاح.");
+      const rect = submitRef.current?.getBoundingClientRect();
+      setBooked({
+        company: companyName,
+        person: personName.trim(),
+        dateLabel: days.find((d) => d.date === date)?.label ?? date,
+        slotLabel: slots.find((s) => s.start === slotStart)?.label ?? "",
+      });
+      fireConfetti(rect ? { x: rect.left + rect.width / 2, y: rect.top } : undefined);
       // Clearing the company resets date/slots/days via the company-change effect.
       setCompanyName("");
       setPersonName("");
@@ -160,157 +218,448 @@ export default function Home() {
   }
 
   return (
-    <div className="mx-auto max-w-lg space-y-6">
-      <div className="space-y-2 text-center">
-        <h1 className="text-3xl font-bold tracking-tight">حجز ميعاد المخزن</h1>
-        <p className="text-muted-foreground">
-          اختر شركتك، أدخل اسمك ورقم هاتفك، ثم اختر ميعاداً متاحاً من التقويم.
-        </p>
+    <div className="relative">
+      {/* aurora behind the hero, full-bleed */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute left-1/2 top-[-10rem] -z-10 h-[820px] w-screen -translate-x-1/2 overflow-hidden"
+      >
+        <AuroraShader className="absolute inset-0" />
+        <FloatingParcels className="hidden md:block" />
+        <div className="absolute inset-x-0 bottom-0 h-72 bg-gradient-to-b from-transparent to-background" />
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CalendarCheck className="h-5 w-5 text-primary" />
-            بيانات الحجز
-          </CardTitle>
-          <CardDescription>كل الحقول مطلوبة.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {loading ? (
-            <div className="flex items-center gap-2 py-6 text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" /> جارٍ التحميل…
+      <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,540px)] lg:grid-rows-[auto_1fr] lg:gap-x-14 lg:gap-y-10">
+        {/* ── hero copy ── */}
+        <div className="pt-2 lg:col-start-1 lg:row-start-1">
+          <motion.span
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, ease: EASE }}
+            className="glass inline-flex items-center gap-2.5 rounded-full py-1.5 ps-1.5 pe-4 text-xs font-medium sm:text-sm"
+          >
+            <span className="bg-brand-gradient grid size-6 place-items-center rounded-full text-white">
+              <Warehouse className="size-3.5" />
+            </span>
+            نظام مواعيد المخزن
+            <span className="relative flex size-2">
+              <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex size-2 rounded-full bg-emerald-400" />
+            </span>
+          </motion.span>
+
+          <h1 className="font-display mt-6 text-[clamp(2.4rem,5.4vw,4.4rem)] font-bold leading-[1.25]">
+            <WordsReveal text="احجز ميعاد" delay={0.1} />
+            <br />
+            <span className="[perspective:600px]">
+              <RotatingWords words={["تنزيل بضاعتك", "في ثواني", "بدون انتظار", "بدون مكالمات"]} />
+            </span>
+          </h1>
+
+          <motion.p
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, ease: EASE, delay: 0.45 }}
+            className="mt-5 max-w-xl text-base leading-8 text-muted-foreground sm:text-lg"
+          >
+            اختر شركتك واليوم المناسب، وخذ ميعادك في المخزن فورًا — بدون مكالمات ولا
+            انتظار على الباب.
+          </motion.p>
+
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, ease: EASE, delay: 0.55 }}
+            className="mt-6"
+          >
+            <LiveClock />
+          </motion.div>
+        </div>
+
+        {/* ── booking card ── */}
+        <motion.div
+          ref={cardRef}
+          id="booking"
+          initial={{ opacity: 0, y: 30, scale: 0.97, filter: "blur(14px)" }}
+          animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+          transition={{ duration: 1, ease: EASE, delay: 0.3 }}
+          onPointerMove={(e) => {
+            const el = cardRef.current;
+            if (!el) return;
+            const r = el.getBoundingClientRect();
+            el.style.setProperty("--mx", `${e.clientX - r.left}px`);
+            el.style.setProperty("--my", `${e.clientY - r.top}px`);
+          }}
+          className="group/card glass border-beam scroll-mt-28 rounded-[32px] p-5 sm:p-7 lg:col-start-2 lg:row-span-2 lg:row-start-1"
+        >
+          {/* cursor spotlight */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 -z-10 rounded-[inherit] opacity-0 transition-opacity duration-500 group-hover/card:opacity-100"
+            style={{
+              background:
+                "radial-gradient(520px circle at var(--mx, 50%) var(--my, 30%), color-mix(in oklch, var(--brand-1) 12%, transparent), transparent 60%)",
+            }}
+          />
+          <div className="flex items-center gap-3">
+            <span className="grid size-11 place-items-center rounded-2xl bg-brand-1/12 text-brand-1">
+              <CalendarCheck className="size-5" />
+            </span>
+            <div className="flex-1">
+              <h2 className="font-display text-lg font-semibold">بيانات الحجز</h2>
+              <p className="text-xs text-muted-foreground">كل الحقول مطلوبة.</p>
             </div>
-          ) : (
-            <>
-              <Field label="الشركة">
-                <Combobox
-                  value={companyName}
-                  onChange={setCompanyName}
-                  options={companyNames}
-                  placeholder="اختر الشركة"
-                  filterPlaceholder="ابحث عن الشركة…"
-                />
-              </Field>
+            {!booked && (
+              <div className="flex items-center gap-1.5" aria-label={`${doneCount} من ${steps.length}`}>
+                {steps.map((s) => (
+                  <span
+                    key={s.label}
+                    className={cn(
+                      "h-1.5 rounded-full transition-all duration-500",
+                      s.done ? "bg-brand-gradient w-5" : "w-1.5 bg-foreground/15",
+                    )}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
 
-              <Field label="الاسم">
-                <Input
-                  dir="auto"
-                  value={personName}
-                  onChange={(e) => setPersonName(e.target.value)}
-                  placeholder="أدخل اسمك"
-                />
-              </Field>
-
-              <Field label="رقم الهاتف">
-                <Input
-                  dir="auto"
-                  inputMode="numeric"
-                  value={personPhone}
-                  onChange={(e) =>
-                    setPersonPhone(e.target.value.replace(/\D/g, "").slice(0, 11))
-                  }
-                  placeholder="01xxxxxxxxx"
-                  aria-invalid={personPhone.length > 0 && !phoneValid}
-                />
-                {personPhone.length > 0 && !phoneValid && (
-                  <p className="text-xs text-red-600 dark:text-red-400">
-                    رقم الهاتف يجب أن يكون 11 رقماً بالضبط.
-                  </p>
-                )}
-              </Field>
-
-              <Field label="الحمولة">
-                <Input
-                  dir="auto"
-                  value={cargo}
-                  onChange={(e) => setCargo(e.target.value)}
-                  placeholder="تفاصيل الحمولة"
-                />
-              </Field>
-
-              <Field label="الميعاد المتاح">
-                {!companyId ? (
-                  <p className="rounded-lg border border-dashed border-border px-3 py-3 text-sm text-muted-foreground">
-                    اختر الشركة أولاً لعرض المواعيد المتاحة.
-                  </p>
-                ) : daysLoading ? (
-                  <div className="flex items-center gap-2 py-1 text-sm text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin" /> جارٍ تحميل الأيام…
-                  </div>
-                ) : days.length === 0 ? (
-                  <p className="rounded-lg border border-dashed border-border px-3 py-3 text-sm text-muted-foreground">
-                    لا توجد مواعيد متاحة لهذه الشركة حالياً.
-                  </p>
-                ) : (
-                  <div className="space-y-3">
-                    <MonthCalendar
-                      availableDates={availableDates}
-                      value={date}
-                      onSelect={setDate}
+          <div className="mt-6">
+            <AnimatePresence mode="wait" initial={false}>
+              {booked ? (
+                <BookedView key="booked" summary={booked} onAgain={() => setBooked(null)} />
+              ) : loading ? (
+                <motion.div key="loading" exit={{ opacity: 0 }}>
+                  <Loading />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="form"
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -12, filter: "blur(8px)" }}
+                  transition={{ duration: 0.45, ease: EASE }}
+                  className="space-y-5"
+                >
+                  <Field label="الشركة" icon={Building2}>
+                    <Combobox
+                      value={companyName}
+                      onChange={setCompanyName}
+                      options={companyNames}
+                      placeholder="اختر الشركة"
+                      filterPlaceholder="ابحث عن الشركة…"
                     />
+                  </Field>
 
-                    {!date ? (
-                      <p className="text-sm text-muted-foreground">
-                        اختر يوماً من التقويم لعرض المواعيد المتاحة.
-                      </p>
-                    ) : slotsLoading ? (
-                      <div className="flex items-center gap-2 py-1 text-sm text-muted-foreground">
-                        <Loader2 className="h-4 w-4 animate-spin" /> جارٍ تحميل المواعيد…
-                      </div>
-                    ) : slots.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">
-                        لا توجد مواعيد متاحة في هذا اليوم.
-                      </p>
-                    ) : (
-                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                        {slots.map((s) => (
-                          <button
-                            key={s.start}
-                            type="button"
-                            onClick={() => setSlotStart(s.start)}
-                            className={cn(
-                              "rounded-lg border px-2 py-2 text-sm transition-colors",
-                              slotStart === s.start
-                                ? "border-primary bg-primary text-primary-foreground"
-                                : "border-border hover:border-primary/50 hover:bg-accent",
-                            )}
+                  <div className="grid gap-5 sm:grid-cols-2">
+                    <Field label="الاسم" icon={UserRound}>
+                      <Input
+                        dir="auto"
+                        value={personName}
+                        onChange={(e) => setPersonName(e.target.value)}
+                        placeholder="أدخل اسمك"
+                      />
+                    </Field>
+
+                    <Field label="رقم الهاتف" icon={Phone}>
+                      <Input
+                        dir="auto"
+                        inputMode="numeric"
+                        value={personPhone}
+                        onChange={(e) =>
+                          setPersonPhone(e.target.value.replace(/\D/g, "").slice(0, 11))
+                        }
+                        placeholder="01xxxxxxxxx"
+                        aria-invalid={personPhone.length > 0 && !phoneValid}
+                        className="font-mono"
+                      />
+                      <AnimatePresence initial={false}>
+                        {personPhone.length > 0 && !phoneValid && (
+                          <motion.p
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="flex items-center gap-1.5 overflow-hidden text-xs text-red-600 dark:text-red-400"
                           >
-                            {s.label}
-                          </button>
-                        ))}
+                            <CircleAlert className="size-3.5 shrink-0" />
+                            رقم الهاتف يجب أن يكون 11 رقماً بالضبط.
+                          </motion.p>
+                        )}
+                      </AnimatePresence>
+                    </Field>
+                  </div>
+
+                  <Field label="الحمولة" icon={Package}>
+                    <Input
+                      dir="auto"
+                      value={cargo}
+                      onChange={(e) => setCargo(e.target.value)}
+                      placeholder="تفاصيل الحمولة"
+                    />
+                  </Field>
+
+                  <Field label="الميعاد المتاح" icon={CalendarDays}>
+                    {!companyId ? (
+                      <Hint>اختر الشركة أولاً لعرض المواعيد المتاحة.</Hint>
+                    ) : daysLoading ? (
+                      <Loading label="جارٍ تحميل الأيام…" />
+                    ) : days.length === 0 ? (
+                      <Hint>لا توجد مواعيد متاحة لهذه الشركة حالياً.</Hint>
+                    ) : (
+                      <div className="space-y-4">
+                        <MonthCalendar
+                          availableDates={availableDates}
+                          value={date}
+                          onSelect={setDate}
+                        />
+
+                        {!date ? (
+                          <p className="text-sm text-muted-foreground">
+                            اختر يوماً من التقويم لعرض المواعيد المتاحة.
+                          </p>
+                        ) : slotsLoading ? (
+                          <Loading label="جارٍ تحميل المواعيد…" />
+                        ) : slots.length === 0 ? (
+                          <p className="text-sm text-muted-foreground">
+                            لا توجد مواعيد متاحة في هذا اليوم.
+                          </p>
+                        ) : (
+                          <SlotPicker slots={slots} value={slotStart} onChange={setSlotStart} />
+                        )}
                       </div>
                     )}
-                  </div>
-                )}
-              </Field>
+                  </Field>
 
-              <Button
-                className="w-full"
-                disabled={!canSubmit || submitting}
-                onClick={submit}
-              >
-                {submitting ? "جارٍ الحجز…" : "احجز الميعاد"}
-              </Button>
-            </>
-          )}
-        </CardContent>
-      </Card>
+                  <Button
+                    ref={submitRef}
+                    size="lg"
+                    className={cn("group h-13 w-full rounded-2xl text-base", canSubmit && "shine")}
+                    disabled={!canSubmit || submitting}
+                    onClick={submit}
+                  >
+                    {submitting ? (
+                      <>
+                        <span className="size-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                        جارٍ الحجز
+                      </>
+                    ) : (
+                      <>
+                        احجز الميعاد
+                        <ArrowRight className="size-5 transition-transform group-hover:translate-x-1" />
+                      </>
+                    )}
+                  </Button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </motion.div>
+
+        {/* ── live steps + dock scene (below the form on phones) ── */}
+        <div className="lg:col-start-1 lg:row-start-2">
+          {/* live stepper */}
+          <motion.ol
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, ease: EASE, delay: 0.6 }}
+            className="max-w-md space-y-1"
+          >
+            {steps.map((s, i) => {
+              const isCurrent = !booked && !s.done && steps.slice(0, i).every((p) => p.done);
+              return (
+                <li key={s.label} className="relative flex items-center gap-4 py-2">
+                  {i < steps.length - 1 && (
+                    <span className="absolute left-[19px] top-[46px] h-[calc(100%-36px)] w-px bg-border">
+                      <motion.span
+                        className="bg-brand-gradient absolute inset-x-0 top-0 h-full origin-top"
+                        animate={{ scaleY: s.done ? 1 : 0 }}
+                        transition={{ duration: 0.5, ease: EASE }}
+                      />
+                    </span>
+                  )}
+                  <span
+                    className={cn(
+                      "relative grid size-10 shrink-0 place-items-center rounded-full border transition-all duration-500",
+                      s.done
+                        ? "bg-brand-gradient border-transparent text-white shadow-lg shadow-brand-2/30"
+                        : isCurrent
+                          ? "border-brand-1/60 bg-brand-1/10 text-brand-1"
+                          : "border-border bg-background/40 text-muted-foreground",
+                    )}
+                  >
+                    {isCurrent && (
+                      <span className="absolute inset-0 animate-ping rounded-full border border-brand-1/40" />
+                    )}
+                    <AnimatePresence mode="wait" initial={false}>
+                      <motion.span
+                        key={s.done ? "done" : "todo"}
+                        initial={{ scale: 0.4, opacity: 0, rotate: -40 }}
+                        animate={{ scale: 1, opacity: 1, rotate: 0 }}
+                        exit={{ scale: 0.4, opacity: 0 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                      >
+                        {s.done ? <Check className="size-4" /> : <s.icon className="size-4" />}
+                      </motion.span>
+                    </AnimatePresence>
+                  </span>
+                  <div>
+                    <p
+                      className={cn(
+                        "text-sm font-semibold transition-colors",
+                        s.done || isCurrent ? "text-foreground" : "text-muted-foreground",
+                      )}
+                    >
+                      {s.label}
+                    </p>
+                    <p className="text-xs text-muted-foreground">{s.hint}</p>
+                  </div>
+                </li>
+              );
+            })}
+          </motion.ol>
+
+          {/* the dock: a looping truck-to-warehouse scene */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.85, duration: 0.8, ease: EASE }}
+            className="mt-8 max-w-md"
+          >
+            <div className="glass overflow-hidden rounded-3xl px-3 pt-3">
+              <DockScene className="block w-full text-foreground" />
+            </div>
+            <Link
+              href="/my-bookings"
+              className="group mt-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              عندك حجز بالفعل؟ تابع حجوزاتك
+              <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
+            </Link>
+          </motion.div>
+        </div>
+      </div>
+
+      <div className="mt-28 space-y-28 sm:mt-36 sm:space-y-36">
+        <CompaniesMarquee names={companyNames} />
+        <StatsStrip companies={companies.length} />
+        <HowItWorks />
+        <FinalCta onBook={scrollToBooking} />
+      </div>
     </div>
   );
 }
 
 function Field({
   label,
+  icon: Icon,
   children,
 }: {
   label: string;
+  icon: LucideIcon;
   children: React.ReactNode;
 }) {
   return (
-    <div className="space-y-1.5">
-      <label className="text-sm font-medium">{label}</label>
+    <div className="space-y-2">
+      <label className="flex items-center gap-2 text-sm font-medium">
+        <Icon className="size-3.5 text-brand-1" />
+        {label}
+      </label>
       {children}
+    </div>
+  );
+}
+
+function Hint({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="rounded-2xl border border-dashed border-border bg-background/30 px-4 py-4 text-sm text-muted-foreground">
+      {children}
+    </p>
+  );
+}
+
+function BookedView({ summary, onAgain }: { summary: BookedSummary; onAgain: () => void }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.96, filter: "blur(10px)" }}
+      animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+      exit={{ opacity: 0, scale: 0.96, filter: "blur(10px)" }}
+      transition={{ duration: 0.6, ease: EASE }}
+      className="py-4 text-center"
+    >
+      <div className="relative mx-auto size-24">
+        <motion.div
+          aria-hidden="true"
+          className="absolute inset-0 rounded-full bg-emerald-400/20"
+          initial={{ scale: 0.4, opacity: 0 }}
+          animate={{ scale: [0.4, 1.35, 1], opacity: [0, 0.8, 0.5] }}
+          transition={{ duration: 1.1, ease: EASE }}
+        />
+        <svg viewBox="0 0 100 100" className="relative size-full" aria-hidden="true">
+          <motion.circle
+            cx="50"
+            cy="50"
+            r="44"
+            fill="none"
+            strokeWidth="4"
+            strokeLinecap="round"
+            className="stroke-emerald-400"
+            initial={{ pathLength: 0 }}
+            animate={{ pathLength: 1 }}
+            transition={{ duration: 0.8, ease: EASE }}
+          />
+          <motion.path
+            d="M31 52 L44 65 L70 37"
+            fill="none"
+            strokeWidth="6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="stroke-emerald-400"
+            initial={{ pathLength: 0 }}
+            animate={{ pathLength: 1 }}
+            transition={{ duration: 0.5, ease: EASE, delay: 0.6 }}
+          />
+        </svg>
+      </div>
+
+      <h3 className="font-display mt-6 text-2xl font-bold">تم إرسال طلب الحجز</h3>
+      <p className="mt-2 text-sm leading-6 text-muted-foreground">
+        طلبك الآن بانتظار تأكيد إدارة المخزن.
+      </p>
+
+      {/* ticket */}
+      <div className="relative mx-auto mt-7 max-w-sm overflow-hidden rounded-2xl border border-border bg-background/50 text-start">
+        <div className="bg-brand-gradient h-1.5" />
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-3 p-5 text-sm">
+          <TicketRow label="الشركة" value={summary.company} />
+          <TicketRow label="الاسم" value={summary.person} />
+          <TicketRow label="اليوم" value={summary.dateLabel} />
+          <TicketRow label="الميعاد" value={summary.slotLabel} />
+        </dl>
+      </div>
+
+      <div className="mt-7 flex flex-wrap justify-center gap-3">
+        <Button variant="outline" onClick={onAgain}>
+          <Plus className="size-4" />
+          حجز جديد
+        </Button>
+        <Button asChild>
+          <Link href="/my-bookings">
+            متابعة حجوزاتي
+            <ArrowRight className="size-4" />
+          </Link>
+        </Button>
+      </div>
+    </motion.div>
+  );
+}
+
+function TicketRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-[11px] text-muted-foreground">{label}</dt>
+      <dd className="truncate font-semibold tabular-nums" dir="auto">
+        {value}
+      </dd>
     </div>
   );
 }

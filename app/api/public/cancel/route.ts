@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import { Booking, ACTIVE_STATUSES } from "@/lib/models/booking";
 import { releaseBooking } from "@/lib/reservations";
+import { slotHasStarted } from "@/lib/slots";
 import { clientIp, rateLimit } from "@/lib/rateLimit";
 
 export const dynamic = "force-dynamic";
@@ -32,6 +33,12 @@ export async function POST(req: NextRequest) {
   if (!ACTIVE_STATUSES.includes(booking.status)) {
     return NextResponse.json(
       { error: "لا يمكن إلغاء هذا الحجز." },
+      { status: 409 },
+    );
+  }
+  if (slotHasStarted(booking.date, booking.slotStart)) {
+    return NextResponse.json(
+      { error: "لا يمكن إلغاء حجز انتهى ميعاده." },
       { status: 409 },
     );
   }

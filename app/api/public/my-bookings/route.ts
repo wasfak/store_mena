@@ -3,7 +3,7 @@ import { connectDB } from "@/lib/db";
 import { getSettings } from "@/lib/me";
 import { Booking } from "@/lib/models/booking";
 import { Company } from "@/lib/models/company";
-import { dateLabelAr, slotRangeLabel } from "@/lib/slots";
+import { dateLabelAr, slotHasStarted, slotRangeLabel } from "@/lib/slots";
 import { clientIp, rateLimit } from "@/lib/rateLimit";
 
 export const dynamic = "force-dynamic";
@@ -46,6 +46,7 @@ export async function GET(req: NextRequest) {
         settings.slotMinutes * (b.slotsCount || 1),
       ),
       status: b.status,
+      isPast: slotHasStarted(b.date, b.slotStart),
       rescheduledByAdmin: !!b.rescheduledByAdmin,
       companyName: nameById.get(String(b.companyId)) ?? "—",
     })),

@@ -2,12 +2,14 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
-import { Loader2, Plus, Trash2, Ban } from "lucide-react";
+import { Plus, Trash2, Ban, ShieldBan } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getJSON, sendJSON } from "@/lib/api";
 import type { CompanyDTO, ConflictDTO } from "@/lib/types";
+import { EmptyState, Loading, PageHeader } from "@/components/page-header";
 
 export default function ConflictsPage() {
   const [companies, setCompanies] = useState<CompanyDTO[]>([]);
@@ -62,55 +64,68 @@ export default function ConflictsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-1">
-        <h1 className="text-2xl font-bold">قواعد التعارض</h1>
-        <p className="max-w-2xl text-muted-foreground">
-          حدّد أزواج الشركات الممنوع حضورها في نفس اليوم. عند حجز إحداها في يوم،
-          يمنع النظام الأخرى من الحجز في نفس اليوم تلقائياً.
-        </p>
-      </div>
+    <div className="space-y-8">
+      <PageHeader
+        icon={ShieldBan}
+        eyebrow="الإدارة"
+        title="قواعد التعارض"
+        description="حدّد أزواج الشركات الممنوع حضورها في نفس اليوم. عند حجز إحداها في يوم، يمنع النظام الأخرى من الحجز في نفس اليوم تلقائياً."
+      />
 
-      <Card className="max-w-2xl">
+      <Card className="border-beam max-w-3xl">
         <CardHeader>
           <CardTitle>إضافة قاعدة منع</CardTitle>
           <CardDescription>الشركتان لا يجتمعان في يوم واحد.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap items-end gap-3">
           <CompanySelect label="الشركة الأولى" value={a} onChange={setA} companies={companies} exclude={b} />
-          <span className="pb-2 text-muted-foreground">×</span>
+          <span className="mx-auto mb-1 grid size-8 place-items-center rounded-full bg-red-500/10 text-red-500 sm:mx-0">
+            <Ban className="size-4" />
+          </span>
           <CompanySelect label="الشركة الثانية" value={b} onChange={setB} companies={companies} exclude={a} />
-          <Button onClick={add} disabled={adding}>
-            <Plus className="mr-1 h-4 w-4" /> إضافة
+          <Button onClick={add} disabled={adding} className="h-10 w-full px-5 sm:w-auto">
+            <Plus className="size-4" /> إضافة
           </Button>
         </CardContent>
       </Card>
 
       {rules === null ? (
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" /> جارٍ التحميل…
-        </div>
+        <Loading />
       ) : rules.length === 0 ? (
-        <p className="text-muted-foreground">لا توجد قواعد تعارض بعد.</p>
+        <EmptyState icon={ShieldBan} title="لا توجد قواعد تعارض بعد." />
       ) : (
-        <div className="space-y-2">
-          {rules.map((r) => (
-            <div
-              key={r.id}
-              className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card p-3"
-            >
-              <div className="flex min-w-0 flex-wrap items-center gap-2">
-                <Ban className="h-4 w-4 text-red-500" />
-                <span className="font-medium">{r.nameA}</span>
-                <span className="text-muted-foreground">لا يجتمع مع</span>
-                <span className="font-medium">{r.nameB}</span>
-              </div>
-              <Button variant="ghost" size="sm" onClick={() => remove(r.id)}>
-                <Trash2 className="h-4 w-4 text-red-500" />
-              </Button>
-            </div>
-          ))}
-        </div>
+        <ul className="grid gap-3 lg:grid-cols-2">
+          <AnimatePresence initial={false}>
+            {rules.map((r, i) => (
+              <motion.li
+                key={r.id}
+                layout
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.94 }}
+                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1], delay: Math.min(i * 0.05, 0.4) }}
+                className="glass group flex items-center justify-between gap-3 rounded-2xl p-3 ps-4"
+              >
+                <div className="flex min-w-0 flex-wrap items-center gap-2.5">
+                  <span className="rounded-xl border border-border bg-background/50 px-3 py-1.5 font-medium">{r.nameA}</span>
+                  <span className="relative grid size-8 place-items-center rounded-full bg-red-500/10 text-red-500" title="لا يجتمع مع">
+                    <Ban className="size-4" />
+                  </span>
+                  <span className="rounded-xl border border-border bg-background/50 px-3 py-1.5 font-medium">{r.nameB}</span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => remove(r.id)}
+                  aria-label="حذف القاعدة"
+                  className="text-muted-foreground hover:bg-red-500/10 hover:text-red-500"
+                >
+                  <Trash2 className="size-4" />
+                </Button>
+              </motion.li>
+            ))}
+          </AnimatePresence>
+        </ul>
       )}
     </div>
   );
@@ -130,10 +145,10 @@ function CompanySelect({
   exclude?: string;
 }) {
   return (
-    <div className="space-y-1">
-      <label className="text-sm font-medium">{label}</label>
+    <div className="w-full space-y-1.5 sm:w-auto">
+      <label className="block text-sm font-medium">{label}</label>
       <Select value={value} onValueChange={onChange}>
-        <SelectTrigger className="w-56">
+        <SelectTrigger className="w-full sm:w-56">
           <SelectValue placeholder="اختر شركة" />
         </SelectTrigger>
         <SelectContent>
