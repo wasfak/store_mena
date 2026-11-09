@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { toast } from "sonner";
-import { Boxes, Building2, CalendarDays, Check, Clock, Inbox, Package, PartyPopper, Phone, Tag, User, X } from "lucide-react";
+import { Boxes, Building2, CalendarDays, Check, Clock, Inbox, PartyPopper, Phone, Tag, Truck, User, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RescheduleDialog } from "@/components/reschedule-dialog";
 import { EmptyState, Loading, PageHeader } from "@/components/page-header";
@@ -118,11 +118,13 @@ export default function BookingRequestsPage() {
                     <InfoRow icon={Building2} label="الشركة" value={b.companyName} />
                     <InfoRow icon={User} label="الاسم" value={b.personName} />
                     <InfoRow icon={Phone} label="الهاتف" value={b.personPhone} mono />
-                    {b.brand && <InfoRow icon={Tag} label="الماركة" value={b.brand} />}
+                    {b.brand && (
+                      <InfoRow icon={Tag} label="الشركات المراد تسليمها" value={b.brand} />
+                    )}
                     {b.boxes != null && (
                       <InfoRow icon={Boxes} label="عدد الصناديق" value={String(b.boxes)} mono />
                     )}
-                    {b.load && <InfoRow icon={Package} label="الحمولة" value={b.load} />}
+                    {b.load && <InfoRow icon={Truck} label="نوع السيارة" value={b.load} />}
                   </dl>
 
                   <div className="flex flex-wrap gap-2">

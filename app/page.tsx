@@ -13,10 +13,10 @@ import {
   Check,
   CircleAlert,
   Clock,
-  Package,
   Phone,
   Plus,
   Tag,
+  Truck,
   UserRound,
   Warehouse,
 } from "lucide-react";
@@ -24,6 +24,13 @@ import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Combobox } from "@/components/ui/combobox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { MonthCalendar } from "@/components/ui/month-calendar";
 import { SlotPicker } from "@/components/slot-picker";
 import { Loading } from "@/components/page-header";
@@ -57,6 +64,9 @@ interface BookedSummary {
 }
 
 const EASE = [0.22, 1, 0.36, 1] as const;
+
+// نوع السيارة — fixed options the person picks from when booking.
+const VEHICLE_TYPES = ["تريله", "1/2 نقل", "1/4 نقل", "فان", "اخري"] as const;
 
 export default function Home() {
   const [companies, setCompanies] = useState<CompanyOpt[]>([]);
@@ -444,22 +454,28 @@ export default function Home() {
                     </Field>
                   </div>
 
-                  <Field label="الحمولة" icon={Package}>
-                    <Input
-                      dir="auto"
-                      value={cargo}
-                      onChange={(e) => setCargo(e.target.value)}
-                      placeholder="تفاصيل الحمولة"
-                    />
+                  <Field label="نوع السيارة" icon={Truck}>
+                    <Select value={cargo} onValueChange={setCargo}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="اختر نوع السيارة" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {VEHICLE_TYPES.map((t) => (
+                          <SelectItem key={t} value={t}>
+                            {t}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </Field>
 
                   <div className="grid gap-5 sm:grid-cols-2">
-                    <Field label="اسم الماركة" icon={Tag}>
+                    <Field label="الشركات المراد تسليمها" icon={Tag}>
                       <Input
                         dir="auto"
                         value={brand}
                         onChange={(e) => setBrand(e.target.value)}
-                        placeholder="اكتب اسم الماركة"
+                        placeholder="اكتب أسماء الشركات"
                       />
                     </Field>
 
@@ -481,8 +497,8 @@ export default function Home() {
                     {!infoComplete ? (
                       <Hint>
                         أكمل كل البيانات بالأعلى أولاً (الشركة، الاسم، رقم
-                        الهاتف، الحمولة، الماركة، وعدد الصناديق) لعرض المواعيد
-                        المتاحة.
+                        الهاتف، نوع السيارة، الشركات المراد تسليمها، وعدد
+                        الصناديق) لعرض المواعيد المتاحة.
                       </Hint>
                     ) : daysLoading ? (
                       <Loading label="جارٍ تحميل الأيام…" />

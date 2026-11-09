@@ -179,7 +179,7 @@ const STEPS: Array<{ icon: LucideIcon; title: string; body: string }> = [
   {
     icon: UserRound,
     title: "اكتب بياناتك",
-    body: "اسمك ورقم هاتفك وتفاصيل الحمولة، عشان نجهّز لك المكان.",
+    body: "اسمك ورقم هاتفك ونوع سيارتك، عشان نجهّز لك المكان.",
   },
   {
     icon: CalendarDays,

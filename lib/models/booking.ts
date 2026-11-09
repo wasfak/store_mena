@@ -15,8 +15,8 @@ export interface IBooking {
   // Who is coming (captured on the public, no-login booking form).
   personName?: string;
   personPhone?: string;
-  load?: string; // الحمولة — free-text for now; details TBD.
-  brand?: string; // اسم الماركة — free-text, typed by the person booking.
+  load?: string; // نوع السيارة — picked from a fixed list (تريله / 1/2 نقل / 1/4 نقل / فان / اخري).
+  brand?: string; // الشركات المراد تسليمها — free-text, typed by the person booking.
   boxes?: number; // عدد الصناديق — how many boxes in the delivery.
   // Set when an admin moved the booking to a different date/slot than requested.
   rescheduledByAdmin?: boolean;
