@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { toast } from "sonner";
 import { Plus, Trash2, Ban, ShieldBan } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
 import { getJSON, sendJSON } from "@/lib/api";
 import type { CompanyDTO, ConflictDTO } from "@/lib/types";
 import { EmptyState, Loading, PageHeader } from "@/components/page-header";
@@ -144,23 +144,26 @@ function CompanySelect({
   companies: CompanyDTO[];
   exclude?: string;
 }) {
+  // Options exclude the other-picked company. We select by name (the Combobox
+  // works with strings) and map back to the company id the API expects.
+  const options = useMemo(
+    () => companies.filter((c) => c.id !== exclude),
+    [companies, exclude],
+  );
+  const names = useMemo(() => options.map((c) => c.name), [options]);
+  const selectedName = companies.find((c) => c.id === value)?.name ?? "";
+
   return (
     <div className="w-full space-y-1.5 sm:w-auto">
       <label className="block text-sm font-medium">{label}</label>
-      <Select value={value} onValueChange={onChange}>
-        <SelectTrigger className="w-full sm:w-56">
-          <SelectValue placeholder="اختر شركة" />
-        </SelectTrigger>
-        <SelectContent>
-          {companies
-            .filter((c) => c.id !== exclude)
-            .map((c) => (
-              <SelectItem key={c.id} value={c.id}>
-                {c.name}
-              </SelectItem>
-            ))}
-        </SelectContent>
-      </Select>
+      <Combobox
+        value={selectedName}
+        onChange={(name) => onChange(options.find((c) => c.name === name)?.id ?? "")}
+        options={names}
+        placeholder="اختر شركة"
+        filterPlaceholder="ابحث عن الشركة…"
+        className="w-full sm:w-56"
+      />
     </div>
   );
 }

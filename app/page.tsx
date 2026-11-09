@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { toast } from "sonner";
 import {
   ArrowRight,
+  Boxes,
   Building2,
   CalendarCheck,
   CalendarDays,
@@ -15,6 +16,7 @@ import {
   Package,
   Phone,
   Plus,
+  Tag,
   UserRound,
   Warehouse,
 } from "lucide-react";
@@ -31,12 +33,7 @@ import { WordsReveal } from "@/components/fx/words-reveal";
 import { fireConfetti } from "@/components/fx/confetti";
 import { DockScene } from "@/components/home/dock-scene";
 import { FloatingParcels, LiveClock } from "@/components/home/hero-extras";
-import {
-  CompaniesMarquee,
-  FinalCta,
-  HowItWorks,
-  StatsStrip,
-} from "@/components/home/sections";
+import { FinalCta, HowItWorks } from "@/components/home/sections";
 import { cn } from "@/lib/utils";
 import { getJSON, sendJSON } from "@/lib/api";
 
@@ -71,6 +68,8 @@ export default function Home() {
   const [personName, setPersonName] = useState("");
   const [personPhone, setPersonPhone] = useState("");
   const [cargo, setCargo] = useState("");
+  const [brand, setBrand] = useState("");
+  const [boxes, setBoxes] = useState("");
   const [date, setDate] = useState("");
 
   const [slots, setSlots] = useState<SlotOpt[]>([]);
@@ -93,7 +92,8 @@ export default function Home() {
   const availableDates = useMemo(() => days.map((d) => d.date), [days]);
 
   const loadCompanies = useCallback(async () => {
-    setLoading(true);
+    // `loading` starts true, so no synchronous setState here — the only updates
+    // happen after the await, which keeps this safe to call from a mount effect.
     try {
       setCompanies(await getJSON<CompanyOpt[]>("/api/public/companies"));
     } catch (e) {
@@ -120,64 +120,89 @@ export default function Home() {
     }
   }, []);
 
-  useEffect(() => {
-    loadCompanies();
-  }, [loadCompanies]);
-
-  // The available days depend on the chosen company (its duration). Reset the
-  // day/slot picks and reload days whenever the company changes.
-  useEffect(() => {
-    setDate("");
-    setSlots([]);
-    setSlotStart(null);
-    loadDays(companyId);
-  }, [companyId, loadDays]);
-
-  // Load the free slots whenever a day is picked on the calendar.
-  useEffect(() => {
-    if (!date || !companyId) {
+  // Fetch the free slots for a chosen day. Called from the calendar's onSelect
+  // (an event handler), not an effect — so no setState runs synchronously
+  // inside an effect body (which React 19 warns about).
+  const loadSlots = useCallback(async (d: string, cid: string) => {
+    if (!d || !cid) {
       setSlots([]);
       setSlotStart(null);
       return;
     }
-    let cancelled = false;
     setSlotsLoading(true);
     setSlotStart(null);
-    getJSON<SlotOpt[]>(
-      `/api/public/available-slots?date=${date}&companyId=${companyId}`,
-    )
-      .then((s) => {
-        if (!cancelled) setSlots(s);
-      })
-      .catch((e) => {
-        if (!cancelled) toast.error((e as Error).message);
-      })
-      .finally(() => {
-        if (!cancelled) setSlotsLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [date, companyId]);
+    try {
+      setSlots(
+        await getJSON<SlotOpt[]>(
+          `/api/public/available-slots?date=${d}&companyId=${cid}`,
+        ),
+      );
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setSlotsLoading(false);
+    }
+  }, []);
+
+  // Changing the company resets the day/slot picks and (re)loads that company's
+  // available days. Driven by the company picker's onChange, not an effect.
+  const changeCompany = useCallback(
+    (name: string) => {
+      setCompanyName(name);
+      setDate("");
+      setSlots([]);
+      setSlotStart(null);
+      const cid = companies.find((c) => c.name === name)?.id ?? "";
+      loadDays(cid);
+    },
+    [companies, loadDays],
+  );
+
+  useEffect(() => {
+    loadCompanies();
+  }, [loadCompanies]);
 
   const phoneValid = /^\d{11}$/.test(personPhone);
-  const canSubmit =
+  // Every field above the calendar must be filled before we reveal the dates.
+  const infoComplete =
     !!companyId &&
     !!personName.trim() &&
     phoneValid &&
-    !!date &&
-    slotStart !== null;
+    !!cargo.trim() &&
+    !!brand.trim() &&
+    !!boxes;
+  const canSubmit = infoComplete && !!date && slotStart !== null;
 
-  const steps: Array<{ label: string; hint: string; done: boolean; icon: LucideIcon }> = [
-    { label: "اختر شركتك", hint: "من قائمة الشركات المسجلة", done: !!companyId, icon: Building2 },
+  const steps: Array<{
+    label: string;
+    hint: string;
+    done: boolean;
+    icon: LucideIcon;
+  }> = [
+    {
+      label: "اختر شركتك",
+      hint: "من قائمة الشركات المسجلة",
+      done: !!companyId,
+      icon: Building2,
+    },
     {
       label: "بياناتك",
       hint: "الاسم ورقم الهاتف",
       done: !!personName.trim() && phoneValid,
       icon: UserRound,
     },
-    { label: "اختر اليوم", hint: "الأيام المتاحة فقط", done: !!date, icon: CalendarDays },
-    { label: "اختر الميعاد", hint: "واحجز على طول", done: slotStart !== null, icon: Clock },
+    {
+      label: "اختر اليوم",
+      hint: "الأيام المتاحة فقط",
+      done: !!date,
+      icon: CalendarDays,
+    },
+    {
+      label: "اختر الميعاد",
+      hint: "واحجز على طول",
+      done: slotStart !== null,
+      icon: Clock,
+    },
   ];
   const doneCount = steps.filter((s) => s.done).length;
 
@@ -193,6 +218,8 @@ export default function Home() {
         personName: personName.trim(),
         personPhone: personPhone.trim(),
         load: cargo.trim(),
+        brand: brand.trim(),
+        boxes: boxes ? Number(boxes) : undefined,
         date,
         slotStart,
       });
@@ -204,12 +231,20 @@ export default function Home() {
         dateLabel: days.find((d) => d.date === date)?.label ?? date,
         slotLabel: slots.find((s) => s.start === slotStart)?.label ?? "",
       });
-      fireConfetti(rect ? { x: rect.left + rect.width / 2, y: rect.top } : undefined);
-      // Clearing the company resets date/slots/days via the company-change effect.
+      fireConfetti(
+        rect ? { x: rect.left + rect.width / 2, y: rect.top } : undefined,
+      );
+      // Reset the whole form for the next booking.
       setCompanyName("");
       setPersonName("");
       setPersonPhone("");
       setCargo("");
+      setBrand("");
+      setBoxes("");
+      setDate("");
+      setSlots([]);
+      setSlotStart(null);
+      setDays([]);
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -252,7 +287,14 @@ export default function Home() {
             <WordsReveal text="احجز ميعاد" delay={0.1} />
             <br />
             <span className="[perspective:600px]">
-              <RotatingWords words={["تنزيل بضاعتك", "في ثواني", "بدون انتظار", "بدون مكالمات"]} />
+              <RotatingWords
+                words={[
+                  "تسليم بضاعتك",
+                  "في ثواني",
+                  "بدون انتظار",
+                  "بدون مكالمات",
+                ]}
+              />
             </span>
           </h1>
 
@@ -262,8 +304,8 @@ export default function Home() {
             transition={{ duration: 0.8, ease: EASE, delay: 0.45 }}
             className="mt-5 max-w-xl text-base leading-8 text-muted-foreground sm:text-lg"
           >
-            اختر شركتك واليوم المناسب، وخذ ميعادك في المخزن فورًا — بدون مكالمات ولا
-            انتظار على الباب.
+            اختر شركتك واليوم المناسب، وخذ ميعادك في المخزن فورًا — بدون مكالمات
+            ولا انتظار على الباب.
           </motion.p>
 
           <motion.div
@@ -306,17 +348,24 @@ export default function Home() {
               <CalendarCheck className="size-5" />
             </span>
             <div className="flex-1">
-              <h2 className="font-display text-lg font-semibold">بيانات الحجز</h2>
+              <h2 className="font-display text-lg font-semibold">
+                بيانات الحجز
+              </h2>
               <p className="text-xs text-muted-foreground">كل الحقول مطلوبة.</p>
             </div>
             {!booked && (
-              <div className="flex items-center gap-1.5" aria-label={`${doneCount} من ${steps.length}`}>
+              <div
+                className="flex items-center gap-1.5"
+                aria-label={`${doneCount} من ${steps.length}`}
+              >
                 {steps.map((s) => (
                   <span
                     key={s.label}
                     className={cn(
                       "h-1.5 rounded-full transition-all duration-500",
-                      s.done ? "bg-brand-gradient w-5" : "w-1.5 bg-foreground/15",
+                      s.done
+                        ? "bg-brand-gradient w-5"
+                        : "w-1.5 bg-foreground/15",
                     )}
                   />
                 ))}
@@ -327,7 +376,11 @@ export default function Home() {
           <div className="mt-6">
             <AnimatePresence mode="wait" initial={false}>
               {booked ? (
-                <BookedView key="booked" summary={booked} onAgain={() => setBooked(null)} />
+                <BookedView
+                  key="booked"
+                  summary={booked}
+                  onAgain={() => setBooked(null)}
+                />
               ) : loading ? (
                 <motion.div key="loading" exit={{ opacity: 0 }}>
                   <Loading />
@@ -344,7 +397,7 @@ export default function Home() {
                   <Field label="الشركة" icon={Building2}>
                     <Combobox
                       value={companyName}
-                      onChange={setCompanyName}
+                      onChange={changeCompany}
                       options={companyNames}
                       placeholder="اختر الشركة"
                       filterPlaceholder="ابحث عن الشركة…"
@@ -367,7 +420,9 @@ export default function Home() {
                         inputMode="numeric"
                         value={personPhone}
                         onChange={(e) =>
-                          setPersonPhone(e.target.value.replace(/\D/g, "").slice(0, 11))
+                          setPersonPhone(
+                            e.target.value.replace(/\D/g, "").slice(0, 11),
+                          )
                         }
                         placeholder="01xxxxxxxxx"
                         aria-invalid={personPhone.length > 0 && !phoneValid}
@@ -398,9 +453,37 @@ export default function Home() {
                     />
                   </Field>
 
+                  <div className="grid gap-5 sm:grid-cols-2">
+                    <Field label="اسم الماركة" icon={Tag}>
+                      <Input
+                        dir="auto"
+                        value={brand}
+                        onChange={(e) => setBrand(e.target.value)}
+                        placeholder="اكتب اسم الماركة"
+                      />
+                    </Field>
+
+                    <Field label="عدد الصناديق" icon={Boxes}>
+                      <Input
+                        dir="auto"
+                        inputMode="numeric"
+                        value={boxes}
+                        onChange={(e) =>
+                          setBoxes(e.target.value.replace(/\D/g, "").slice(0, 5))
+                        }
+                        placeholder="مثال: 12"
+                        className="font-mono"
+                      />
+                    </Field>
+                  </div>
+
                   <Field label="الميعاد المتاح" icon={CalendarDays}>
-                    {!companyId ? (
-                      <Hint>اختر الشركة أولاً لعرض المواعيد المتاحة.</Hint>
+                    {!infoComplete ? (
+                      <Hint>
+                        أكمل كل البيانات بالأعلى أولاً (الشركة، الاسم، رقم
+                        الهاتف، الحمولة، الماركة، وعدد الصناديق) لعرض المواعيد
+                        المتاحة.
+                      </Hint>
                     ) : daysLoading ? (
                       <Loading label="جارٍ تحميل الأيام…" />
                     ) : days.length === 0 ? (
@@ -410,7 +493,10 @@ export default function Home() {
                         <MonthCalendar
                           availableDates={availableDates}
                           value={date}
-                          onSelect={setDate}
+                          onSelect={(d) => {
+                            setDate(d);
+                            loadSlots(d, companyId);
+                          }}
                         />
 
                         {!date ? (
@@ -424,7 +510,11 @@ export default function Home() {
                             لا توجد مواعيد متاحة في هذا اليوم.
                           </p>
                         ) : (
-                          <SlotPicker slots={slots} value={slotStart} onChange={setSlotStart} />
+                          <SlotPicker
+                            slots={slots}
+                            value={slotStart}
+                            onChange={setSlotStart}
+                          />
                         )}
                       </div>
                     )}
@@ -433,7 +523,10 @@ export default function Home() {
                   <Button
                     ref={submitRef}
                     size="lg"
-                    className={cn("group h-13 w-full rounded-2xl text-base", canSubmit && "shine")}
+                    className={cn(
+                      "group h-13 w-full rounded-2xl text-base",
+                      canSubmit && "shine",
+                    )}
                     disabled={!canSubmit || submitting}
                     onClick={submit}
                   >
@@ -465,9 +558,13 @@ export default function Home() {
             className="max-w-md space-y-1"
           >
             {steps.map((s, i) => {
-              const isCurrent = !booked && !s.done && steps.slice(0, i).every((p) => p.done);
+              const isCurrent =
+                !booked && !s.done && steps.slice(0, i).every((p) => p.done);
               return (
-                <li key={s.label} className="relative flex items-center gap-4 py-2">
+                <li
+                  key={s.label}
+                  className="relative flex items-center gap-4 py-2"
+                >
                   {i < steps.length - 1 && (
                     <span className="absolute left-[19px] top-[46px] h-[calc(100%-36px)] w-px bg-border">
                       <motion.span
@@ -496,9 +593,17 @@ export default function Home() {
                         initial={{ scale: 0.4, opacity: 0, rotate: -40 }}
                         animate={{ scale: 1, opacity: 1, rotate: 0 }}
                         exit={{ scale: 0.4, opacity: 0 }}
-                        transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                        transition={{
+                          type: "spring",
+                          stiffness: 400,
+                          damping: 20,
+                        }}
                       >
-                        {s.done ? <Check className="size-4" /> : <s.icon className="size-4" />}
+                        {s.done ? (
+                          <Check className="size-4" />
+                        ) : (
+                          <s.icon className="size-4" />
+                        )}
                       </motion.span>
                     </AnimatePresence>
                   </span>
@@ -506,7 +611,9 @@ export default function Home() {
                     <p
                       className={cn(
                         "text-sm font-semibold transition-colors",
-                        s.done || isCurrent ? "text-foreground" : "text-muted-foreground",
+                        s.done || isCurrent
+                          ? "text-foreground"
+                          : "text-muted-foreground",
                       )}
                     >
                       {s.label}
@@ -540,8 +647,6 @@ export default function Home() {
       </div>
 
       <div className="mt-28 space-y-28 sm:mt-36 sm:space-y-36">
-        <CompaniesMarquee names={companyNames} />
-        <StatsStrip companies={companies.length} />
         <HowItWorks />
         <FinalCta onBook={scrollToBooking} />
       </div>
@@ -577,7 +682,13 @@ function Hint({ children }: { children: React.ReactNode }) {
   );
 }
 
-function BookedView({ summary, onAgain }: { summary: BookedSummary; onAgain: () => void }) {
+function BookedView({
+  summary,
+  onAgain,
+}: {
+  summary: BookedSummary;
+  onAgain: () => void;
+}) {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.96, filter: "blur(10px)" }}
@@ -594,7 +705,11 @@ function BookedView({ summary, onAgain }: { summary: BookedSummary; onAgain: () 
           animate={{ scale: [0.4, 1.35, 1], opacity: [0, 0.8, 0.5] }}
           transition={{ duration: 1.1, ease: EASE }}
         />
-        <svg viewBox="0 0 100 100" className="relative size-full" aria-hidden="true">
+        <svg
+          viewBox="0 0 100 100"
+          className="relative size-full"
+          aria-hidden="true"
+        >
           <motion.circle
             cx="50"
             cy="50"
@@ -621,7 +736,9 @@ function BookedView({ summary, onAgain }: { summary: BookedSummary; onAgain: () 
         </svg>
       </div>
 
-      <h3 className="font-display mt-6 text-2xl font-bold">تم إرسال طلب الحجز</h3>
+      <h3 className="font-display mt-6 text-2xl font-bold">
+        تم إرسال طلب الحجز
+      </h3>
       <p className="mt-2 text-sm leading-6 text-muted-foreground">
         طلبك الآن بانتظار تأكيد إدارة المخزن.
       </p>

@@ -27,6 +27,10 @@ export async function POST(req: NextRequest) {
   const personName = String(body.personName ?? "").trim();
   const personPhone = String(body.personPhone ?? "").trim();
   const load = String(body.load ?? "").trim() || undefined;
+  const brand = String(body.brand ?? "").trim() || undefined;
+  const boxesRaw = Number(body.boxes);
+  const boxes =
+    Number.isFinite(boxesRaw) && boxesRaw > 0 ? Math.floor(boxesRaw) : undefined;
   const date = String(body.date ?? "").trim();
   const slotStart = Number(body.slotStart);
 
@@ -94,6 +98,8 @@ export async function POST(req: NextRequest) {
     personName,
     personPhone,
     load,
+    brand,
+    boxes,
     createdByAdmin: false,
   });
 

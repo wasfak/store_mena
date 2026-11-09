@@ -76,7 +76,7 @@ const navItems: Array<{
 
 export const metadata: Metadata = {
   title: "مواعيد المخزن",
-  description: "حجز وتنظيم مواعيد تنزيل بضاعة الشركات في المخزن",
+  description: "حجز وتنظيم مواعيد تسليم بضاعة الشركات في المخزن",
 };
 
 export default async function RootLayout({
@@ -124,7 +124,7 @@ export default async function RootLayout({
               {children}
             </main>
             <footer className="mx-auto w-full max-w-7xl border-t border-border px-4 py-6 text-center text-xs text-muted-foreground sm:px-6">
-              مواعيد المخزن — نظام حجز مواعيد تنزيل البضاعة
+              مواعيد المخزن — نظام حجز مواعيد لتسليم البضاعة
             </footer>
             <Toaster position="top-right" richColors />
           </ThemeProvider>

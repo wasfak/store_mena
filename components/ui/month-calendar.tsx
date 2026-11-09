@@ -29,7 +29,6 @@ export function MonthCalendar({
   onSelect: (date: string) => void;
 }) {
   const avail = React.useMemo(() => new Set(availableDates), [availableDates]);
-  const layoutGroup = React.useId();
 
   // Navigation bounds (first & last available month), falling back to now.
   const { minYM, maxYM } = React.useMemo(() => {
@@ -161,11 +160,7 @@ export function MonthCalendar({
                 )}
               >
                 {selected && (
-                  <motion.span
-                    layoutId={`cal-sel-${layoutGroup}`}
-                    className="bg-brand-gradient absolute inset-0 rounded-xl shadow-lg shadow-brand-2/40"
-                    transition={{ type: "spring", stiffness: 420, damping: 32 }}
-                  />
+                  <span className="bg-brand-gradient absolute inset-0 rounded-xl shadow-lg shadow-brand-2/40" />
                 )}
                 <span className="relative">{day}</span>
                 {enabled && !selected && (

@@ -27,10 +27,15 @@ export function Combobox({
   const [open, setOpen] = React.useState(false);
   const [q, setQ] = React.useState("");
 
-  const filtered = React.useMemo(() => {
+  // Don't dump the whole (huge) list on open — only show matches once the user
+  // starts typing, and cap how many we render so the popover stays snappy.
+  const MAX = 50;
+  const typing = q.trim().length > 0;
+  const matches = React.useMemo(() => {
     const t = q.trim().toLowerCase();
-    return t ? options.filter((o) => o.toLowerCase().includes(t)) : options;
+    return t ? options.filter((o) => o.toLowerCase().includes(t)) : [];
   }, [q, options]);
+  const filtered = matches.slice(0, MAX);
 
   return (
     <PopoverPrimitive.Root
@@ -72,7 +77,11 @@ export function Combobox({
             dir="auto"
           />
           <div className="max-h-60 overflow-auto">
-            {filtered.length === 0 ? (
+            {!typing ? (
+              <p className="px-2 py-4 text-center text-sm text-muted-foreground">
+                اكتب اسم الشركة للبحث…
+              </p>
+            ) : filtered.length === 0 ? (
               <p className="px-2 py-4 text-center text-sm text-muted-foreground">
                 لا توجد نتائج
               </p>
@@ -96,6 +105,11 @@ export function Combobox({
                   {o === value && <Check className="size-4 shrink-0 text-brand-1" />}
                 </button>
               ))
+            )}
+            {typing && matches.length > MAX && (
+              <p className="px-2 py-2 text-center text-xs text-muted-foreground">
+                أول {MAX} نتيجة من {matches.length} — اكتب أكثر لتضييق البحث.
+              </p>
             )}
           </div>
         </PopoverPrimitive.Content>

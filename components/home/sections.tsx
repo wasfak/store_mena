@@ -30,7 +30,15 @@ import { WordsReveal } from "@/components/fx/words-reveal";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
-function SectionTitle({ eyebrow, title, subtitle }: { eyebrow: string; title: string; subtitle?: string }) {
+function SectionTitle({
+  eyebrow,
+  title,
+  subtitle,
+}: {
+  eyebrow: string;
+  title: string;
+  subtitle?: string;
+}) {
   return (
     <div className="mx-auto max-w-2xl text-center">
       <motion.span
@@ -66,11 +74,16 @@ function SectionTitle({ eyebrow, title, subtitle }: { eyebrow: string; title: st
 export function CompaniesMarquee({ names }: { names: string[] }) {
   if (names.length < 3) return null;
   // Repeat short lists so the strip is always wider than the screen.
-  const items = Array.from({ length: Math.max(1, Math.ceil(12 / names.length)) }, () => names).flat();
+  const items = Array.from(
+    { length: Math.max(1, Math.ceil(12 / names.length)) },
+    () => names,
+  ).flat();
   const half = Math.ceil(items.length / 2);
   return (
     <section aria-label="الشركات" className="relative">
-      <p className="mb-5 text-center text-sm text-muted-foreground">شركات تنزّل بضاعتها في مخزننا</p>
+      <p className="mb-5 text-center text-sm text-muted-foreground">
+        شركات تنزّل بضاعتها في مخزننا
+      </p>
       <div className="space-y-3">
         <Marquee duration={Math.max(30, items.length * 3)}>
           {items.slice(0, half).map((n, i) => (
@@ -78,9 +91,13 @@ export function CompaniesMarquee({ names }: { names: string[] }) {
           ))}
         </Marquee>
         <Marquee duration={Math.max(34, items.length * 3.4)} reverse>
-          {items.slice(half).concat(items.slice(0, half)).slice(0, half).map((n, i) => (
-            <CompanyChip key={i} name={n} />
-          ))}
+          {items
+            .slice(half)
+            .concat(items.slice(0, half))
+            .slice(0, half)
+            .map((n, i) => (
+              <CompanyChip key={i} name={n} />
+            ))}
         </Marquee>
       </div>
     </section>
@@ -101,7 +118,13 @@ function CompanyChip({ name }: { name: string }) {
 /* ───────── animated counters ───────── */
 
 export function StatsStrip({ companies }: { companies: number }) {
-  const stats: Array<{ icon: LucideIcon; value?: number; from?: number; text?: string; label: string }> = [
+  const stats: Array<{
+    icon: LucideIcon;
+    value?: number;
+    from?: number;
+    text?: string;
+    label: string;
+  }> = [
     { icon: Building2, value: companies, label: "شركة مسجلة" },
     { icon: Workflow, value: 4, label: "خطوات فقط للحجز" },
     { icon: PhoneOff, value: 0, from: 30, label: "مكالمات مطلوبة" },
@@ -148,26 +171,48 @@ function Counter({ to, from = 0 }: { to: number; from?: number }) {
 /* ───────── how it works (beam draws as you scroll) ───────── */
 
 const STEPS: Array<{ icon: LucideIcon; title: string; body: string }> = [
-  { icon: Building2, title: "اختر شركتك", body: "ابحث عن شركتك في القائمة — المدة تُحسب تلقائياً حسب حجم الشركة." },
-  { icon: UserRound, title: "اكتب بياناتك", body: "اسمك ورقم هاتفك وتفاصيل الحمولة، عشان نجهّز لك المكان." },
-  { icon: CalendarDays, title: "اختر اليوم والميعاد", body: "تظهر لك الأيام والخانات المتاحة فقط — بدون تعارض مع أي شركة." },
-  { icon: BadgeCheck, title: "تأكيد المخزن", body: "الإدارة تراجع الطلب وتؤكده، وتتابع حالته من صفحة «حجوزاتي»." },
+  {
+    icon: Building2,
+    title: "اختر شركتك",
+    body: "ابحث عن شركتك في القائمة — المدة تُحسب تلقائياً حسب حجم الشركة.",
+  },
+  {
+    icon: UserRound,
+    title: "اكتب بياناتك",
+    body: "اسمك ورقم هاتفك وتفاصيل الحمولة، عشان نجهّز لك المكان.",
+  },
+  {
+    icon: CalendarDays,
+    title: "اختر اليوم والميعاد",
+    body: "تظهر لك الأيام والخانات المتاحة فقط — بدون تعارض مع أي شركة.",
+  },
+  {
+    icon: BadgeCheck,
+    title: "تأكيد المخزن",
+    body: "الإدارة تراجع الطلب وتؤكده، وتتابع حالته من صفحة «حجوزاتي».",
+  },
 ];
 
 export function HowItWorks() {
   const ref = React.useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start 80%", "end 55%"] });
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start 80%", "end 55%"],
+  });
   const progress = useSpring(scrollYProgress, { stiffness: 110, damping: 28 });
 
   return (
     <section>
       <SectionTitle
         eyebrow="إزاي بيشتغل"
-        title="من الطلب للتنزيل في أربع خطوات"
+        title="من الطلب لتسليم في أربع خطوات"
         subtitle="نظام واحد بيرتّب مواعيد كل الشركات — من غير زحمة على باب المخزن."
       />
       <div ref={ref} className="relative mt-14">
-        <div aria-hidden="true" className="absolute inset-x-[12.5%] top-[36px] hidden h-px bg-border lg:block">
+        <div
+          aria-hidden="true"
+          className="absolute inset-x-[12.5%] top-[36px] hidden h-px bg-border lg:block"
+        >
           <motion.div
             style={{ scaleX: progress }}
             className="bg-brand-gradient h-full origin-left shadow-[0_0_12px] shadow-brand-2/60"

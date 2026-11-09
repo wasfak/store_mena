@@ -16,6 +16,8 @@ export interface IBooking {
   personName?: string;
   personPhone?: string;
   load?: string; // الحمولة — free-text for now; details TBD.
+  brand?: string; // اسم الماركة — free-text, typed by the person booking.
+  boxes?: number; // عدد الصناديق — how many boxes in the delivery.
   // Set when an admin moved the booking to a different date/slot than requested.
   rescheduledByAdmin?: boolean;
   createdByClerkId?: string; // set only when an admin/signed-in user booked
@@ -43,6 +45,8 @@ const BookingSchema = new Schema<IBooking>(
     personName: { type: String, trim: true },
     personPhone: { type: String, trim: true },
     load: { type: String, trim: true },
+    brand: { type: String, trim: true },
+    boxes: { type: Number, min: 0 },
     rescheduledByAdmin: { type: Boolean, default: false },
     createdByClerkId: { type: String },
     createdByAdmin: { type: Boolean, default: false },

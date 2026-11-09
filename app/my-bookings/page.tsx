@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { toast } from "sonner";
@@ -15,13 +15,12 @@ import {
   Phone,
   Search,
   Ticket,
-  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StatusBadge } from "@/components/status-badge";
 import { EmptyState, Loading, PageHeader } from "@/components/page-header";
-import { getJSON, sendJSON } from "@/lib/api";
+import { getJSON } from "@/lib/api";
 import type { BookingStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -37,7 +36,6 @@ interface MyBooking {
   companyName: string;
 }
 
-const PHONE_KEY = "mena.myphone";
 const MONTHS = [
   "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
   "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر",
@@ -48,24 +46,38 @@ export default function MyBookingsPage() {
   const [phone, setPhone] = useState("");
   const [list, setList] = useState<MyBooking[] | null>(null);
   const [loading, setLoading] = useState(false);
-  const [busy, setBusy] = useState<string | null>(null);
-
   const phoneValid = /^\d{11}$/.test(phone);
 
-  // Prefill the phone from this browser, and auto-load if it's valid.
-  useEffect(() => {
-    let saved = "";
+  // Silent background refresh (no spinner, no toast) for the auto-refresh timer.
+  const refresh = useCallback(async (p: string) => {
+    if (!/^\d{11}$/.test(p)) return;
     try {
-      saved = localStorage.getItem(PHONE_KEY) ?? "";
+      const data = await getJSON<MyBooking[]>(
+        `/api/public/my-bookings?phone=${p}`,
+      );
+      setList(data);
     } catch {
-      saved = "";
+      /* keep the current list on a background refresh error */
     }
-    if (/^\d{11}$/.test(saved)) {
-      setPhone(saved);
-      void lookup(saved);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Auto-refresh every 2 minutes once a number's bookings are shown. Skips the
+  // fetch while the tab is hidden, and refreshes immediately on returning to it.
+  const loaded = list !== null;
+  useEffect(() => {
+    if (!loaded || !phoneValid) return;
+    const id = setInterval(() => {
+      if (!document.hidden) void refresh(phone);
+    }, 120_000);
+    const onVisible = () => {
+      if (!document.hidden) void refresh(phone);
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [loaded, phoneValid, phone, refresh]);
 
   async function lookup(p: string) {
     if (!/^\d{11}$/.test(p)) {
@@ -78,28 +90,10 @@ export default function MyBookingsPage() {
         `/api/public/my-bookings?phone=${p}`,
       );
       setList(data);
-      try {
-        localStorage.setItem(PHONE_KEY, p);
-      } catch {
-        /* ignore storage errors */
-      }
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
       setLoading(false);
-    }
-  }
-
-  async function cancel(id: string) {
-    setBusy(id);
-    try {
-      await sendJSON("/api/public/cancel", "POST", { id, phone });
-      toast.success("تم إلغاء الحجز.");
-      await lookup(phone);
-    } catch (e) {
-      toast.error((e as Error).message);
-    } finally {
-      setBusy(null);
     }
   }
 
@@ -167,9 +161,18 @@ export default function MyBookingsPage() {
         />
       ) : (
         <div className="space-y-10">
-          <p className="text-sm text-muted-foreground">
-            <span className="font-mono text-foreground">{list.length}</span> حجز مرتبط بهذا الرقم
-          </p>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+            <span>
+              <span className="font-mono text-foreground">{list.length}</span> حجز مرتبط بهذا الرقم
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-1/30 bg-brand-1/10 px-2.5 py-1 text-sm font-semibold text-brand-1">
+              <span className="relative flex size-2">
+                <span className="absolute inline-flex size-full animate-ping rounded-full bg-brand-1 opacity-60" />
+                <span className="relative inline-flex size-2 rounded-full bg-brand-1" />
+              </span>
+              يتم التحديث تلقائياً كل دقيقتين
+            </span>
+          </div>
 
           <BookingSection title="الحجوزات القادمة" count={upcoming.length} icon={CalendarClock}>
             {upcoming.length === 0 ? (
@@ -186,13 +189,7 @@ export default function MyBookingsPage() {
               </motion.li>
             ) : (
               upcoming.map((b, i) => (
-                <BookingTicket
-                  key={b.id}
-                  b={b}
-                  index={i}
-                  busy={busy === b.id}
-                  onCancel={() => cancel(b.id)}
-                />
+                <BookingTicket key={b.id} b={b} index={i} />
               ))
             )}
           </BookingSection>
@@ -253,17 +250,11 @@ function BookingSection({
 function BookingTicket({
   b,
   index,
-  busy,
-  onCancel,
 }: {
   b: MyBooking;
   index: number;
-  busy?: boolean;
-  /** only upcoming tickets get a cancel action */
-  onCancel?: () => void;
 }) {
   const active = b.status === "pending" || b.status === "confirmed";
-  const canCancel = !!onCancel && active && !b.isPast;
   const [, m, d] = b.date.split("-").map(Number);
 
   return (
@@ -327,17 +318,6 @@ function BookingTicket({
             </span>
           )}
           <StatusBadge status={b.status} />
-          {canCancel && (
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={busy}
-              onClick={onCancel}
-              className="hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-500"
-            >
-              <X className="size-4" /> إلغاء
-            </Button>
-          )}
         </div>
       </div>
     </motion.li>

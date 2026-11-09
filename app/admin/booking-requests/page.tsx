@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { toast } from "sonner";
-import { Building2, CalendarDays, Check, Clock, Inbox, PartyPopper, Phone, User, X } from "lucide-react";
+import { Boxes, Building2, CalendarDays, Check, Clock, Inbox, Package, PartyPopper, Phone, Tag, User, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RescheduleDialog } from "@/components/reschedule-dialog";
 import { EmptyState, Loading, PageHeader } from "@/components/page-header";
@@ -15,6 +15,9 @@ interface PendingBooking {
   companyName: string;
   personName: string;
   personPhone: string;
+  brand: string;
+  boxes: number | null;
+  load: string;
   date: string;
   dateLabel: string;
   slotLabel: string;
@@ -115,6 +118,11 @@ export default function BookingRequestsPage() {
                     <InfoRow icon={Building2} label="الشركة" value={b.companyName} />
                     <InfoRow icon={User} label="الاسم" value={b.personName} />
                     <InfoRow icon={Phone} label="الهاتف" value={b.personPhone} mono />
+                    {b.brand && <InfoRow icon={Tag} label="الماركة" value={b.brand} />}
+                    {b.boxes != null && (
+                      <InfoRow icon={Boxes} label="عدد الصناديق" value={String(b.boxes)} mono />
+                    )}
+                    {b.load && <InfoRow icon={Package} label="الحمولة" value={b.load} />}
                   </dl>
 
                   <div className="flex flex-wrap gap-2">

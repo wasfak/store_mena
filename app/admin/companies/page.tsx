@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
-import { Building2, Plus } from "lucide-react";
+import { Building2, Plus, Search } from "lucide-react";
 import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,7 @@ export default function CompaniesPage() {
   const [phone, setPhone] = useState("");
   const [dur, setDur] = useState("1");
   const [adding, setAdding] = useState(false);
+  const [query, setQuery] = useState("");
 
   const load = useCallback(async () => {
     try {
@@ -80,6 +81,17 @@ export default function CompaniesPage() {
     }
   }
 
+  const q = query.trim().toLowerCase();
+  const filtered = q
+    ? (list ?? []).filter(
+        (c) =>
+          c.name.toLowerCase().includes(q) ||
+          (c.phone ?? "").toLowerCase().includes(q),
+      )
+    : (list ?? []);
+  const MAX = 10;
+  const shown = filtered.slice(0, MAX);
+
   return (
     <div className="space-y-8">
       <PageHeader
@@ -128,6 +140,34 @@ export default function CompaniesPage() {
       ) : list.length === 0 ? (
         <EmptyState icon={Building2} title="لا توجد شركات بعد." hint="أضف أول شركة من النموذج بالأعلى." />
       ) : (
+        <div className="space-y-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative w-full sm:max-w-xs">
+              <Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="ابحث عن شركة بالاسم أو رقم التواصل…"
+                className="w-full pr-10"
+                dir="auto"
+              />
+            </div>
+            <p className="shrink-0 text-sm text-muted-foreground">
+              {q ? (
+                <>
+                  <span className="font-mono text-foreground">{filtered.length}</span> نتيجة
+                </>
+              ) : (
+                <>
+                  <span className="font-mono text-foreground">{list.length}</span> شركة
+                </>
+              )}
+            </p>
+          </div>
+
+          {filtered.length === 0 ? (
+            <EmptyState icon={Search} title="لا توجد نتائج مطابقة." hint="جرّب اسماً أو رقماً مختلفاً." />
+          ) : (
         <motion.div
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
@@ -146,7 +186,7 @@ export default function CompaniesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {list.map((c) => (
+              {shown.map((c) => (
                 <TableRow key={c.id}>
                   <TableCell className="font-medium">
                     <span className="flex items-center gap-3">
@@ -193,7 +233,14 @@ export default function CompaniesPage() {
               ))}
             </TableBody>
           </Table>
+          {filtered.length > MAX && (
+            <p className="px-4 py-3 text-center text-xs text-muted-foreground">
+              عرض أول {MAX} من {filtered.length} — اكتب في البحث لتضييق النتائج.
+            </p>
+          )}
         </motion.div>
+          )}
+        </div>
       )}
     </div>
   );

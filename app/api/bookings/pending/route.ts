@@ -33,6 +33,9 @@ export async function GET() {
       companyName: nameById.get(String(b.companyId)) ?? "شركة محذوفة",
       personName: b.personName ?? "—",
       personPhone: b.personPhone ?? "—",
+      brand: b.brand ?? "",
+      boxes: typeof b.boxes === "number" ? b.boxes : null,
+      load: b.load ?? "",
       date: b.date,
       dateLabel: dateLabelAr(b.date),
       slotLabel: slotRangeLabel(

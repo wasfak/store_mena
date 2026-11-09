@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Warehouse } from "lucide-react";
 
-// Animated "WaSfY" wordmark: a moving cyan→purple→emerald gradient with a
-// periodic letter-scramble and a blurred glow behind it. Ported from the
-// nawakes project but rebuilt with CSS animations (no framer-motion dependency).
+// Animated "WaSfY" wordmark, tuned to the site's "sunset" brand
+// (amber → coral → fuchsia). A small warehouse mark ties it to the product,
+// the gradient drifts, and the letters scramble into place every few seconds.
 
 const CYCLES_PER_LETTER = 3;
 const SHUFFLE_TIME = 30; // ms per scramble tick
@@ -47,8 +48,10 @@ function useScrambledText(initial: string) {
   return { text, scramble };
 }
 
-const gradient =
-  "text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-purple-400 to-emerald-400";
+// Brand "sunset" gradient, straight from the design tokens (--brand-1/2/3),
+// so the logo always matches the rest of the UI in both light and dark.
+const brandGradient =
+  "linear-gradient(110deg, var(--brand-1), var(--brand-2) 50%, var(--brand-3))";
 
 export function BrandLogo({
   text = "WaSfY",
@@ -59,35 +62,54 @@ export function BrandLogo({
 }) {
   const { text: displayText, scramble } = useScrambledText(text);
 
-  // re-scramble on mount and every 4s
+  // re-scramble on mount and every 5s
   useEffect(() => {
     scramble();
-    const id = setInterval(scramble, 4000);
+    const id = setInterval(scramble, 5000);
     return () => clearInterval(id);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <span className={"relative inline-block select-none " + (className ?? "")}>
-      <span
-        className={`font-mono text-lg font-bold tracking-widest sm:text-xl ${gradient}`}
-        style={{
-          backgroundSize: "200% 200%",
-          animation: "brand-gradient-move 4s ease-in-out infinite",
-        }}
-      >
-        {displayText}
-      </span>
-
-      {/* blurred glow duplicate behind it */}
+    <span
+      className={
+        "group/logo relative inline-flex select-none items-center gap-2 " +
+        (className ?? "")
+      }
+    >
+      {/* warehouse mark */}
       <span
         aria-hidden="true"
-        className={`absolute inset-0 font-mono text-lg font-bold tracking-widest blur-md sm:text-xl ${gradient}`}
-        style={{
-          backgroundSize: "200% 200%",
-          animation: "brand-glow-pulse 4s ease-in-out infinite",
-        }}
+        className="grid size-7 shrink-0 place-items-center rounded-xl text-white shadow-sm shadow-brand-2/30 transition-transform duration-500 group-hover/logo:rotate-6"
+        style={{ backgroundImage: brandGradient, backgroundSize: "180% 100%" }}
       >
-        {displayText}
+        <Warehouse className="size-4" />
+      </span>
+
+      {/* wordmark */}
+      <span className="relative inline-block font-mono text-lg font-bold tracking-widest sm:text-xl">
+        <span
+          className="bg-clip-text text-transparent"
+          style={{
+            backgroundImage: brandGradient,
+            backgroundSize: "200% 200%",
+            animation: "brand-gradient-move 5s ease-in-out infinite",
+          }}
+        >
+          {displayText}
+        </span>
+
+        {/* blurred glow duplicate behind it */}
+        <span
+          aria-hidden="true"
+          className="absolute inset-0 bg-clip-text text-transparent blur-md"
+          style={{
+            backgroundImage: brandGradient,
+            backgroundSize: "200% 200%",
+            animation: "brand-glow-pulse 5s ease-in-out infinite",
+          }}
+        >
+          {displayText}
+        </span>
       </span>
     </span>
   );
